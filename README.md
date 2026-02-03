@@ -368,6 +368,23 @@ example.com:443
 > 快速安装依赖 GitHub Releases 预编译包（`realm-panel-amd.tar.gz` / `realm-panel-arm.tar.gz`）。  
 > 若未上传该包，快速安装会失败并提示改用自编译（主菜单会自动尝试自编译）。
 
+### 预编译包发布（可选）
+
+在构建机（与目标架构一致）执行：
+
+```bash
+bash build-panel-release.sh
+```
+
+生成文件：
+
+- `dist/realm-panel-amd.tar.gz`
+- `dist/realm-panel-arm.tar.gz`
+
+将对应文件上传到 GitHub Releases（tag 建议为 `realm`），与 `quickpanel.sh` 的下载链接保持一致。
+
+也可以使用 GitHub Actions 自动构建并上传（见：`.github/workflows/release-panel.yml`）。
+
 ### 面板默认信息
 
 - 默认端口：`4794`

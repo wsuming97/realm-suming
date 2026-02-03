@@ -1,0 +1,55 @@
+name: Build Realm Panel Release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            arch: amd
+            use_cross: false
+          - target: aarch64-unknown-linux-gnu
+            arch: arm
+            use_cross: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cross
+        if: matrix.use_cross
+        run: cargo install cross
+
+      - name: Build release package
+        run: |
+          chmod +x build-panel-release.sh
+          if [ "${{ matrix.use_cross }}" = "true" ]; then
+            CARGO_CMD=cross RUST_TARGET=${{ matrix.target }} bash build-panel-release.sh
+          else
+            RUST_TARGET=${{ matrix.target }} bash build-panel-release.sh
+          fi
+
+      - name: Upload to GitHub Release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/realm-panel-${{ matrix.arch }}.tar.gz
+
+      - name: Upload artifact
+        if: github.event_name != 'release'
+        uses: actions/upload-artifact@v4
+        with:
+          name: realm-panel-${{ matrix.arch }}
+          path: dist/realm-panel-${{ matrix.arch }}.tar.gz
