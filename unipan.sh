@@ -1,9 +1,16 @@
 #!/bin/bash
 
-RED="\033[31m"
-GREEN="\033[32m"
-YELLOW="\033[33m"
-RESET="\033[0m"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+if [ -f "$SCRIPT_DIR/lib/common.sh" ]; then
+    # shellcheck source=/dev/null
+    source "$SCRIPT_DIR/lib/common.sh"
+elif [ -f "/usr/local/lib/realm/common.sh" ]; then
+    # shellcheck source=/dev/null
+    source /usr/local/lib/realm/common.sh
+else
+    echo "缺少公共库 lib/common.sh" >&2
+    exit 1
+fi
 
 echo -e "${YELLOW}开始卸载 Realm 面板 ...${RESET}"
 
@@ -44,13 +51,28 @@ sed -i '/.cargo\/env/d' "$HOME/.bashrc"
 echo -e "${GREEN}[4/6] Rust 环境已移除${RESET}"
 
 echo -e ">>> 正在清理系统编译依赖..."
-if [ -f /etc/debian_version ]; then
-    apt-get remove --purge -y build-essential pkg-config libssl-dev >/dev/null 2>&1
-    apt-get autoremove -y >/dev/null 2>&1
-elif [ -f /etc/redhat-release ]; then
-    yum groupremove -y "Development Tools" >/dev/null 2>&1
-    yum remove -y openssl-devel >/dev/null 2>&1
-fi
+SYSTEM_TYPE="$(detect_system)"
+case "$SYSTEM_TYPE" in
+    ubuntu|debian)
+        apt-get remove --purge -y build-essential pkg-config libssl-dev >/dev/null 2>&1
+        apt-get autoremove -y >/dev/null 2>&1
+        ;;
+    centos)
+        if command -v dnf >/dev/null 2>&1; then
+            dnf groupremove -y "Development Tools" >/dev/null 2>&1
+            dnf remove -y openssl-devel >/dev/null 2>&1
+        else
+            yum groupremove -y "Development Tools" >/dev/null 2>&1
+            yum remove -y openssl-devel >/dev/null 2>&1
+        fi
+        ;;
+    alpine)
+        apk del build-base openssl-dev >/dev/null 2>&1 || true
+        ;;
+    *)
+        echo -e "${YELLOW}未识别发行版，跳过依赖清理。${RESET}"
+        ;;
+esac
 echo -e "${GREEN}[5/6] 系统编译依赖已清理${RESET}"
 
 echo -e ">>> 正在清理临时文件..."

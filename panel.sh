@@ -1,4 +1,16 @@
-﻿#!/bin/bash
+#!/bin/bash
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+if [ -f "$SCRIPT_DIR/lib/common.sh" ]; then
+    # shellcheck source=/dev/null
+    source "$SCRIPT_DIR/lib/common.sh"
+elif [ -f "/usr/local/lib/realm/common.sh" ]; then
+    # shellcheck source=/dev/null
+    source /usr/local/lib/realm/common.sh
+else
+    echo "缺少公共库 lib/common.sh" >&2
+    exit 1
+fi
 
 # =================配置区域=================
 PANEL_PORT="4794"
@@ -15,24 +27,11 @@ WORK_DIR="/opt/realm_panel"
 PANEL_BIN="/usr/local/bin/realm-panel"
 PANEL_DATA="/etc/realm/panel_data.json"
 
-# 颜色
-GREEN="\033[32m"
-RED="\033[31m"
-YELLOW="\033[33m"
-CYAN="\033[36m"
-RESET="\033[0m"
 # =========================================
 
 # 自定义链名称
 CHAIN_IN="REALM_IN"
 CHAIN_OUT="REALM_OUT"
-
-need_cmd() {
-    if ! command -v "$1" >/dev/null 2>&1; then
-        echo -e "${RED}错误: 缺少必要命令 '$1'${RESET}"
-        exit 1
-    fi
-}
 
 spinner() {
     local pid=$1
@@ -54,22 +53,6 @@ run_step() {
     eval "$2" >/dev/null 2>&1 &
     spinner $!
     echo -e "${GREEN} [完成]${RESET}"
-}
-
-get_arch() {
-    case "$(uname -m)" in
-        x86_64) echo "x86_64" ;;
-        aarch64) echo "aarch64" ;;
-        *) echo "unsupported" ;;
-    esac
-}
-
-get_libc() {
-    if ldd --version 2>&1 | grep -q 'musl'; then
-        echo "musl"
-    else
-        echo "gnu"
-    fi
 }
 
 prepare_env_and_fix_compilation() {
@@ -105,6 +88,14 @@ get_realm_filename() {
     arch="$(get_arch)"
     libc="$(get_libc)"
     if [ "$arch" = "unsupported" ]; then return 1; fi
+    if [ "$arch" = "armv7" ]; then
+        if [ "$libc" = "musl" ]; then
+            echo "realm-armv7-unknown-linux-musleabihf.tar.gz"
+        else
+            echo "realm-armv7-unknown-linux-gnueabihf.tar.gz"
+        fi
+        return 0
+    fi
     echo "realm-${arch}-unknown-linux-${libc}.tar.gz"
 }
 
@@ -1709,7 +1700,6 @@ if [ "$DEFAULT_PASS" = "123456" ]; then
     echo -e "${YELLOW}   请登录面板后立即修改密码，避免安全风险${RESET}"
     echo -e "------------------------------------------"
 fi
-
 
 
 

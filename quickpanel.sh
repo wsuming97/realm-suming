@@ -1,5 +1,17 @@
 #!/bin/bash
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+if [ -f "$SCRIPT_DIR/lib/common.sh" ]; then
+    # shellcheck source=/dev/null
+    source "$SCRIPT_DIR/lib/common.sh"
+elif [ -f "/usr/local/lib/realm/common.sh" ]; then
+    # shellcheck source=/dev/null
+    source /usr/local/lib/realm/common.sh
+else
+    echo "缺少公共库 lib/common.sh" >&2
+    exit 1
+fi
+
 URL_AMD="https://github.com/wsuming97/realm-suming/releases/download/realm/realm-panel-amd.tar.gz"
 URL_ARM="https://github.com/wsuming97/realm-suming/releases/download/realm/realm-panel-arm.tar.gz"
 
@@ -10,12 +22,6 @@ DEFAULT_PASS="123456"
 BINARY_PATH="/usr/local/bin/realm-panel"
 SERVICE_FILE="/etc/systemd/system/realm-panel.service"
 DATA_FILE="/etc/realm/panel_data.json"
-
-GREEN="\033[32m"
-RED="\033[31m"
-YELLOW="\033[33m"
-CYAN="\033[36m"
-RESET="\033[0m"
 
 echo -e "${GREEN}==========================================${RESET}"
 echo -e "${GREEN}             Realm 面板 一键部署          ${RESET}"
@@ -55,12 +61,26 @@ else
 fi
 
 echo -n ">>> 正在安装基础依赖..."
-if [ -f /etc/debian_version ]; then
-    apt-get update >/dev/null 2>&1
-    apt-get install -y curl wget libssl-dev >/dev/null 2>&1
-elif [ -f /etc/redhat-release ]; then
-    yum install -y curl wget openssl-devel >/dev/null 2>&1
-fi
+SYSTEM_TYPE="$(detect_system)"
+case "$SYSTEM_TYPE" in
+    ubuntu|debian)
+        apt-get update >/dev/null 2>&1
+        apt-get install -y curl wget libssl-dev >/dev/null 2>&1
+        ;;
+    centos)
+        if command -v dnf >/dev/null 2>&1; then
+            dnf install -y curl wget openssl-devel >/dev/null 2>&1
+        else
+            yum install -y curl wget openssl-devel >/dev/null 2>&1
+        fi
+        ;;
+    alpine)
+        apk add --no-cache curl wget openssl >/dev/null 2>&1
+        ;;
+    *)
+        echo -e "${YELLOW}未识别发行版，跳过依赖安装。${RESET}"
+        ;;
+esac
 echo -e "${GREEN} [完成]${RESET}"
 
 echo -n ">>> 正在下载面板..."
