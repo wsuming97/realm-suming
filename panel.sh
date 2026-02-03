@@ -1704,6 +1704,11 @@ echo -e "访问地址 : ${YELLOW}http://${IP}:${PANEL_PORT}${RESET}"
 echo -e "默认用户 : ${YELLOW}${DEFAULT_USER}${RESET}"
 echo -e "默认密码 : ${YELLOW}${DEFAULT_PASS}${RESET}"
 echo -e "------------------------------------------"
+if [ "$DEFAULT_PASS" = "123456" ]; then
+    echo -e "${RED}⚠️  安全警告: 检测到使用默认密码!${RESET}"
+    echo -e "${YELLOW}   请登录面板后立即修改密码，避免安全风险${RESET}"
+    echo -e "------------------------------------------"
+fi
 
 
 

@@ -15,13 +15,19 @@ systemctl daemon-reload
 echo -e "${GREEN}[1/6] 面板服务已移除${RESET}"
 
 echo -e ">>> 正在清理流量统计防火墙规则..."
+# 清理 iptables 规则
 iptables -D INPUT -j REALM_IN 2>/dev/null || true
 iptables -D OUTPUT -j REALM_OUT 2>/dev/null || true
 iptables -F REALM_IN 2>/dev/null || true
 iptables -F REALM_OUT 2>/dev/null || true
 iptables -X REALM_IN 2>/dev/null || true
 iptables -X REALM_OUT 2>/dev/null || true
-echo -e "${GREEN}[2/6] 流量统计规则已清理${RESET}"
+
+# 清理 nftables 规则（端口流量狗使用）
+if command -v nft &> /dev/null; then
+    nft delete table inet port_traffic_monitor 2>/dev/null || true
+fi
+echo -e "${GREEN}[2/6] 流量统计规则已清理（iptables + nftables）${RESET}"
 
 echo -e ">>> 正在清理程序文件..."
 rm -f /usr/local/bin/realm-panel

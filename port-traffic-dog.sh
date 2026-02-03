@@ -33,6 +33,16 @@ detect_system() {
         return
     fi
 
+    if [ -f /etc/redhat-release ]; then
+        echo "centos"
+        return
+    fi
+
+    if [ -f /etc/alpine-release ]; then
+        echo "alpine"
+        return
+    fi
+
     echo "unknown"
 }
 
@@ -82,9 +92,53 @@ install_missing_tools() {
                 esac
             done
             ;;
+        "centos")
+            if command -v dnf >/dev/null 2>&1; then
+                PKG="dnf"
+            else
+                PKG="yum"
+            fi
+            for tool in "${missing_tools[@]}"; do
+                case $tool in
+                    "nft") $PKG install -y nftables ;;
+                    "tc") $PKG install -y iproute-tc ;;
+                    "ss") $PKG install -y iproute ;;
+                    "jq") $PKG install -y jq ;;
+                    "awk") $PKG install -y gawk ;;
+                    "bc") $PKG install -y bc ;;
+                    "unzip") $PKG install -y unzip ;;
+                    "cron")
+                        $PKG install -y cronie
+                        systemctl enable crond 2>/dev/null || true
+                        systemctl start crond 2>/dev/null || true
+                        ;;
+                    *) $PKG install -y "$tool" ;;
+                esac
+            done
+            ;;
+        "alpine")
+            apk update
+            for tool in "${missing_tools[@]}"; do
+                case $tool in
+                    "nft") apk add nftables ;;
+                    "tc") apk add iproute2-tc ;;
+                    "ss") apk add iproute2 ;;
+                    "jq") apk add jq ;;
+                    "awk") apk add gawk ;;
+                    "bc") apk add bc ;;
+                    "unzip") apk add unzip ;;
+                    "cron")
+                        apk add cronie
+                        rc-update add crond default 2>/dev/null || true
+                        rc-service crond start 2>/dev/null || true
+                        ;;
+                    *) apk add "$tool" ;;
+                esac
+            done
+            ;;
         *)
             echo -e "${RED}不支持的系统类型: $system_type${NC}"
-            echo "支持的系统: Ubuntu, Debian"
+            echo "支持的系统: Ubuntu, Debian, CentOS, Alpine"
             echo "请手动安装: ${missing_tools[*]}"
             exit 1
             ;;
