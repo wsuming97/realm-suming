@@ -257,11 +257,20 @@ const CHAIN_IN: &str = "REALM_IN";
 const CHAIN_OUT: &str = "REALM_OUT";
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
+struct RemoteTarget {
+    address: String,
+    #[serde(default)]
+    label: String,
+}
+
 struct Rule {
     id: String,
     name: String,
     listen: String,
     remote: String,
+    #[serde(default)]
+    remote_list: Vec<RemoteTarget>,
     enabled: bool,
     #[serde(default)]
     expire_date: u64,
@@ -347,6 +356,8 @@ struct RealmEndpoint {
     name: String,
     listen: String,
     remote: String,
+    #[serde(default)]
+    remote_list: Vec<RemoteTarget>,
     #[serde(rename = "type")]
     r#type: String,
 }
@@ -423,6 +434,9 @@ async fn main() {
         .route("/api/admin/account", post(update_account))
         .route("/api/admin/bg", post(update_bg))
         .route("/api/backup", get(download_backup))
+        .route("/api/rules/:id/targets", get(get_rule_targets).post(add_rule_target))
+        .route("/api/rules/:id/targets/:idx", delete(delete_rule_target))
+        .route("/api/rules/:id/switch-target", post(switch_rule_target))
         .route("/api/restore", post(restore_backup))
         .route("/logout", post(logout_action))
         .layer(CookieManagerLayer::new())
@@ -951,6 +965,8 @@ struct AddRuleReq {
     name: String,
     listen: String,
     remote: String,
+    #[serde(default)]
+    remote_list: Vec<RemoteTarget>,
     expire_date: u64,
     traffic_limit: u64,
     #[serde(default)]
@@ -1141,6 +1157,8 @@ struct UpdateRuleReq {
     name: String,
     listen: String,
     remote: String,
+    #[serde(default)]
+    remote_list: Vec<RemoteTarget>,
     expire_date: u64,
     traffic_limit: u64,
     #[serde(default)]
@@ -1512,6 +1530,70 @@ async fn update_bg(cookies: Cookies, State(state): State<Arc<AppState>>, Json(re
     Json(serde_json::json!({"status":"ok"})).into_response()
 }
 
+// 多目标切换 API
+async fn get_rule_targets(Path(id): Path<String>, cookies: Cookies, State(state): State<Arc<AppState>>) -> Response {
+    let data = state.data.lock().unwrap();
+    if !check_auth(&cookies, &data) { return StatusCode::UNAUTHORIZED.into_response(); }
+    if let Some(rule) = data.rules.iter().find(|r| r.id == id) {
+        Json(serde_json::json!({"targets": rule.remote_list})).into_response()
+    } else {
+        StatusCode::NOT_FOUND.into_response()
+    }
+}
+
+#[derive(Deserialize)]
+struct AddTargetReq { address: String, label: String }
+
+async fn add_rule_target(Path(id): Path<String>, cookies: Cookies, State(state): State<Arc<AppState>>, Json(req): Json<AddTargetReq>) -> Response {
+    let mut data = state.data.lock().unwrap();
+    if !check_auth(&cookies, &data) { return StatusCode::UNAUTHORIZED.into_response(); }
+    if let Some(rule) = data.rules.iter_mut().find(|r| r.id == id) {
+        rule.remote_list.push(RemoteTarget { address: req.address, label: req.label });
+        save_json(&data);
+        Json(serde_json::json!({"status":"ok"})).into_response()
+    } else {
+        StatusCode::NOT_FOUND.into_response()
+    }
+}
+
+async fn delete_rule_target(Path((id, idx)): Path<(String, usize)>, cookies: Cookies, State(state): State<Arc<AppState>>) -> Response {
+    let mut data = state.data.lock().unwrap();
+    if !check_auth(&cookies, &data) { return StatusCode::UNAUTHORIZED.into_response(); }
+    if let Some(rule) = data.rules.iter_mut().find(|r| r.id == id) {
+        if idx < rule.remote_list.len() {
+            rule.remote_list.remove(idx);
+            save_json(&data);
+            Json(serde_json::json!({"status":"ok"})).into_response()
+        } else {
+            Json(serde_json::json!({"status":"error","message":"索引超出范围"})).into_response()
+        }
+    } else {
+        StatusCode::NOT_FOUND.into_response()
+    }
+}
+
+#[derive(Deserialize)]
+struct SwitchTargetReq { index: usize }
+
+async fn switch_rule_target(Path(id): Path<String>, cookies: Cookies, State(state): State<Arc<AppState>>, Json(req): Json<SwitchTargetReq>) -> Response {
+    let mut data = state.data.lock().unwrap();
+    if !check_auth(&cookies, &data) { return StatusCode::UNAUTHORIZED.into_response(); }
+    if let Some(rule) = data.rules.iter_mut().find(|r| r.id == id) {
+        if req.index < rule.remote_list.len() {
+            rule.remote = rule.remote_list[req.index].address.clone();
+            save_json(&data);
+            drop(data);
+            let _ = reload_realm(&state);
+            Json(serde_json::json!({"status":"ok"})).into_response()
+        } else {
+            Json(serde_json::json!({"status":"error","message":"索引超出范围"})).into_response()
+        }
+    } else {
+        StatusCode::NOT_FOUND.into_response()
+    }
+}
+
+
 const LOGIN_HTML: &str = r#"
 <!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"><title>Realm Login</title><style>*{margin:0;padding:0;box-sizing:border-box}body{height:100vh;width:100vw;overflow:hidden;display:flex;justify-content:center;align-items:center;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:url('{{BG_PC}}') no-repeat center center/cover;color:#374151}@media(max-width:768px){body{background-image:url('{{BG_MOBILE}}')}}.overlay{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.05)}.box{position:relative;z-index:2;background:rgba(255,255,255,0.3);backdrop-filter:blur(25px);-webkit-backdrop-filter:blur(25px);padding:2.5rem;border-radius:24px;border:1px solid rgba(255,255,255,0.4);box-shadow:0 8px 32px rgba(0,0,0,0.05);width:90%;max-width:380px;text-align:center}h2{margin-bottom:2rem;color:#374151;font-weight:600;letter-spacing:1px}input{width:100%;padding:14px;margin-bottom:1.2rem;border:1px solid rgba(255,255,255,0.5);border-radius:12px;outline:none;background:rgba(255,255,255,0.5);transition:0.3s;color:#374151}input:focus{background:rgba(255,255,255,0.9);border-color:#3b82f6}button{width:100%;padding:14px;background:rgba(59,130,246,0.85);color:white;border:none;border-radius:12px;cursor:pointer;font-weight:600;font-size:1rem;transition:0.3s;backdrop-filter:blur(5px)}button:hover{background:#2563eb;transform:translateY(-1px)}</style></head><body><div class="overlay"></div><div class="box"><h2>Realm Panel</h2><form onsubmit="doLogin(event)"><input type="text" id="u" placeholder="Username" required><input type="password" id="p" placeholder="Password" required><button type="submit" id="btn">登 录</button></form></div><script>async function doLogin(e){e.preventDefault();const b=document.getElementById('btn');b.innerText='登录中...';b.disabled=true;const res=await fetch('/login',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:`username=${encodeURIComponent(document.getElementById('u').value)}&password=${encodeURIComponent(document.getElementById('p').value)}`});if(res.redirected){location.href=res.url}else if(res.ok){location.href='/'}else{alert('用户名或密码错误');b.innerText='登 录';b.disabled=false}}</script></body></html>
 "#;
@@ -1531,8 +1613,8 @@ td:last-child{border-right:1px solid rgba(255,255,255,0.3);border-top-right-radi
 .info-row{display:flex;justify-content:space-between;margin-bottom:8px;font-size:0.9rem}.info-val{font-weight:600}
 .progress-bar{width:100%;height:10px;background:rgba(0,0,0,0.1);border-radius:5px;overflow:hidden;margin-top:5px}.progress-fill{height:100%;background:var(--primary);width:0%}
 .expire-warning{color:var(--danger);font-size:0.8rem;margin-top:2px}
-@media(max-width:768px){.grid-input{grid-template-columns:1fr; gap:10px}.navbar{padding:0.8rem 1rem}.nav-text{display:none}thead{display:none}tbody tr{display:flex;flex-direction:column;border-radius:18px!important;margin-bottom:12px;padding:15px;border:1px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.4)}td{padding:6px 0;display:flex;justify-content:space-between;border-radius:0!important;align-items:center;border:none;background:transparent}td::before{content:attr(data-label);color:#9ca3af;font-size:0.85rem}td[data-label="操作"]{justify-content:flex-end;gap:10px;margin-top:8px;padding-top:10px;border-top:1px solid rgba(0,0,0,0.05)}td[data-label="操作"] .btn{flex:none;width:auto;padding:6px 14px;border-radius:8px;font-size:0.85rem}td[data-label="操作"] .btn-gray{background:transparent;border:1px solid rgba(0,0,0,0.15);color:#555}td[data-label="操作"] .btn-primary{background:var(--primary);color:white}td[data-label="操作"] .btn-danger{background:rgba(239,68,68,0.1);color:var(--danger);border:1px solid rgba(239,68,68,0.2)}.tools-group{width:100%;margin-top:5px}.tools-group .btn{flex:1;justify-content:center;padding:10px 0;font-size:0.85rem}}</style></head><body><div class="navbar"><div class="brand"><i class="fas fa-layer-group"></i> <span class="nav-text">Realm 转发面板</span></div><div class="nav-actions" style="display:flex;gap:15px"><button class="btn btn-gray" onclick="openSettings()"><i class="fas fa-sliders-h"></i> <span class="nav-text">面板设置</span></button><button class="btn btn-danger" onclick="doLogout()"><i class="fas fa-power-off"></i></button></div></div><div class="container"><div class="card card-fixed"><div class="grid-input"><input id="n" placeholder="备注名称"><input id="l" placeholder="监听端口 (如 10000)"><input id="r" placeholder="目标 (例 1.2.3.4:443)"><button class="btn btn-primary" onclick="openAddModal()"><i class="fas fa-plus"></i> 添加</button><div class="tools-group"><button class="btn btn-primary" onclick="openBatch()" style="background:#8b5cf6"><i class="fas fa-paste"></i> 批量</button><button class="btn btn-danger" onclick="delAll()" style="background:#ef4444"><i class="fas fa-trash"></i> 全删</button><button class="btn btn-primary" onclick="downloadBackup()" style="background:#059669"><i class="fas fa-download"></i> 导出</button><button class="btn btn-danger" onclick="openRestore()" style="background:#d97706"><i class="fas fa-upload"></i> 导入</button></div></div></div><div class="card card-scroll"><div style="padding:1.2rem 1.5rem;font-weight:700;font-size:1rem;opacity:0.8">转发规则管理</div><div class="table-wrapper"><table id="ruleTable"><thead><tr><th>状态</th><th>备注</th><th>监听</th><th>目标</th><th>流量 (In/Out)</th><th style="width:180px;text-align:right;padding-right:20px">操作</th></tr></thead><tbody id="list"></tbody></table><div id="emptyView" style="display:none;text-align:center;padding:50px;color:#9ca3af"><i class="fas fa-inbox" style="font-size:2rem;display:block;margin-bottom:10px"></i>暂无规则</div></div></div></div>
-<div id="ruleModal" class="modal"><div class="modal-box"><h3 id="modalTitle">添加规则</h3><input type="hidden" id="edit_id"><label>备注</label><input id="mod_n"><label>监听端口</label><input id="mod_l"><label>目标地址</label><input id="mod_r"><label>到期时间 (留空不限制)</label><input type="datetime-local" id="mod_e"><label>流量限制 (留空或0不限制)</label><div style="display:flex;gap:10px"><input id="mod_t_val" type="number" placeholder="数值" style="flex:1"><select id="mod_t_unit" style="padding:10px;border-radius:10px;border:1px solid rgba(0,0,0,0.05);background:rgba(255,255,255,0.5)"><option value="MB">MB</option><option value="GB">GB</option></select></div><label>带宽限速</label><div style="display:flex;gap:10px;align-items:center"><input id="mod_bw_en" type="checkbox" style="width:auto"><input id="mod_bw_rate" placeholder="如 100Mbps" style="flex:1"></div><label>计费模式</label><select id="mod_billing" style="padding:10px;border-radius:10px;border:1px solid rgba(0,0,0,0.05);background:rgba(255,255,255,0.5)"><option value="single">单向</option><option value="double">双向</option></select><label>月度重置日 (0=不重置)</label><input id="mod_reset_day" type="number" min="0" max="31"><div style="margin-top:25px;display:flex;justify-content:flex-end;gap:12px"><button class="btn btn-gray" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="saveRule()">保存</button></div></div></div>
+@media(max-width:768px){.grid-input{grid-template-columns:1fr; gap:10px}.navbar{padding:0.8rem 1rem}.nav-text{display:none}thead{display:none}tbody tr{display:flex;flex-direction:column;border-radius:18px!important;margin-bottom:12px;padding:15px;border:1px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.4)}td{padding:6px 0;display:flex;justify-content:space-between;border-radius:0!important;align-items:center;border:none;background:transparent}td::before{content:attr(data-label);color:#9ca3af;font-size:0.85rem}td[data-label="操作"]{justify-content:flex-end;gap:10px;margin-top:8px;padding-top:10px;border-top:1px solid rgba(0,0,0,0.05)}td[data-label="操作"] .btn{flex:none;width:auto;padding:6px 14px;border-radius:8px;font-size:0.85rem}td[data-label="操作"] .btn-gray{background:transparent;border:1px solid rgba(0,0,0,0.15);color:#555}td[data-label="操作"] .btn-primary{background:var(--primary);color:white}td[data-label="操作"] .btn-danger{background:rgba(239,68,68,0.1);color:var(--danger);border:1px solid rgba(239,68,68,0.2)}.tools-group{width:100%;margin-top:5px}.tools-group .btn{flex:1;justify-content:center;padding:10px 0;font-size:0.85rem}}</style></head><body><div class="navbar"><div class="brand"><i class="fas fa-layer-group"></i> <span class="nav-text">Realm 转发面板</span></div><div class="nav-actions" style="display:flex;gap:15px"><button class="btn btn-gray" onclick="openTrafficDog()" style="background:#f59e0b;color:white"><i class="fas fa-dog"></i> <span class="nav-text">流量狗</span></button><button class="btn btn-gray" onclick="openSettings()"><i class="fas fa-sliders-h"></i> <span class="nav-text">面板设置</span></button><button class="btn btn-danger" onclick="doLogout()"><i class="fas fa-power-off"></i></button></div></div><div class="container"><div class="card card-fixed"><div class="grid-input"><input id="n" placeholder="备注名称"><input id="l" placeholder="监听端口 (如 10000)"><input id="r" placeholder="目标 (例 1.2.3.4:443)"><button class="btn btn-primary" onclick="openAddModal()"><i class="fas fa-plus"></i> 添加</button><div class="tools-group"><button class="btn btn-primary" onclick="openBatch()" style="background:#8b5cf6"><i class="fas fa-paste"></i> 批量</button><button class="btn btn-danger" onclick="delAll()" style="background:#ef4444"><i class="fas fa-trash"></i> 全删</button><button class="btn btn-primary" onclick="downloadBackup()" style="background:#059669"><i class="fas fa-download"></i> 导出</button><button class="btn btn-danger" onclick="openRestore()" style="background:#d97706"><i class="fas fa-upload"></i> 导入</button></div></div></div><div class="card card-scroll"><div style="padding:1.2rem 1.5rem;font-weight:700;font-size:1rem;opacity:0.8">转发规则管理</div><div class="table-wrapper"><table id="ruleTable"><thead><tr><th>状态</th><th>备注</th><th>监听</th><th>目标</th><th>流量 (In/Out)</th><th style="width:180px;text-align:right;padding-right:20px">操作</th></tr></thead><tbody id="list"></tbody></table><div id="emptyView" style="display:none;text-align:center;padding:50px;color:#9ca3af"><i class="fas fa-inbox" style="font-size:2rem;display:block;margin-bottom:10px"></i>暂无规则</div></div></div></div>
+<div id="ruleModal" class="modal"><div class="modal-box"><h3 id="modalTitle">添加规则</h3><input type="hidden" id="edit_id"><label>备注</label><input id="mod_n"><label>监听端口</label><input id="mod_l"><label>目标地址</label><input id="mod_r"><div id="targetsSection" style="display:none;margin:15px 0;padding:15px;border:1px dashed #ddd;border-radius:10px;background:rgba(0,0,0,0.02)"><label style="display:flex;justify-content:space-between;align-items:center">备用目标列表 <button type="button" class="btn btn-gray" style="padding:4px 10px;font-size:0.8rem" onclick="addTargetRow()"><i class="fas fa-plus"></i> 添加</button></label><div id="targetsList"></div></div><label>到期时间 (留空不限制)</label><input type="datetime-local" id="mod_e"><label>流量限制 (留空或0不限制)</label><div style="display:flex;gap:10px"><input id="mod_t_val" type="number" placeholder="数值" style="flex:1"><select id="mod_t_unit" style="padding:10px;border-radius:10px;border:1px solid rgba(0,0,0,0.05);background:rgba(255,255,255,0.5)"><option value="MB">MB</option><option value="GB">GB</option></select></div><label>带宽限速</label><div style="display:flex;gap:10px;align-items:center"><input id="mod_bw_en" type="checkbox" style="width:auto"><input id="mod_bw_rate" placeholder="如 100Mbps" style="flex:1"></div><label>计费模式</label><select id="mod_billing" style="padding:10px;border-radius:10px;border:1px solid rgba(0,0,0,0.05);background:rgba(255,255,255,0.5)"><option value="single">单向</option><option value="double">双向</option></select><label>月度重置日 (0=不重置)</label><input id="mod_reset_day" type="number" min="0" max="31"><div style="margin-top:25px;display:flex;justify-content:flex-end;gap:12px"><button class="btn btn-gray" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="saveRule()">保存</button></div></div></div>
 <div id="viewModal" class="modal"><div class="modal-box"><h3 style="margin-bottom:20px;border-bottom:1px solid #eee;padding-bottom:10px">规则详情</h3><div class="info-row"><span>备注</span><span class="info-val" id="view_n"></span></div><div class="info-row"><span>监听</span><span class="info-val" id="view_l"></span></div><div class="info-row"><span>目标</span><span class="info-val" id="view_r"></span></div><div style="margin:15px 0;border-top:1px dashed #ddd;padding-top:10px"></div><div id="view_expire_sec"><div class="info-row"><span>到期时间</span><span class="info-val" id="view_e_date"></span></div><div style="text-align:right;font-size:0.8rem;color:#666" id="view_e_remain"></div></div><div style="margin:15px 0;border-top:1px dashed #ddd;padding-top:10px"></div><div id="view_traffic_sec"><div class="info-row"><span>流量使用 (Max)</span><span class="info-val"><span id="view_t_used"></span> / <span id="view_t_limit"></span></span></div><div class="progress-bar"><div class="progress-fill" id="view_t_bar"></div></div><div style="text-align:right;margin-top:5px"><button class="btn btn-gray" style="font-size:0.7rem;padding:4px 8px" onclick="resetTraffic()">重置流量</button></div></div><div style="margin:15px 0;border-top:1px dashed #ddd;padding-top:10px"></div><div id="view_bw_sec"><div class="info-row"><span>带宽限速</span><span class="info-val" id="view_bw"></span></div><div class="info-row"><span>计费模式</span><span class="info-val" id="view_bill"></span></div><div class="info-row"><span>月度重置</span><span class="info-val" id="view_reset"></span></div></div><div style="margin-top:25px;display:flex;justify-content:flex-end;"><button class="btn btn-primary" onclick="closeModal()">关闭</button></div></div></div>
 <div id="setModal" class="modal"><div class="modal-box" style="max-width:720px"><div class="tab-header"><div class="tab-btn active" onclick="switchTab(0)">管理账户</div><div class="tab-btn" onclick="switchTab(1)">个性背景</div><div class="tab-btn" onclick="switchTab(2)">通知设置</div><div class="tab-btn" onclick="switchTab(3)">远程节点</div></div><div class="tab-content active" id="tab0"><label>用户名</label><input id="set_u" value="{{USER}}"><label>重置密码 (留空保持不变)</label><input id="set_p" type="password"><div style="margin-top:25px;display:flex;justify-content:flex-end;gap:12px"><button class="btn btn-gray" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="saveAccount()">确认修改</button></div></div><div class="tab-content" id="tab1"><label>PC端壁纸 URL</label><input id="bg_pc" value="{{BG_PC}}"><label>手机端壁纸 URL</label><input id="bg_mob" value="{{BG_MOBILE}}"><div style="margin-top:25px;display:flex;justify-content:flex-end;gap:12px"><button class="btn btn-gray" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="saveBg()">应用背景</button></div></div><div class="tab-content" id="tab2"><label>服务器名称</label><input id="nt_server"><label><input id="nt_tg_en" type="checkbox" style="width:auto;margin-right:6px">Telegram 启用</label><label>Bot Token</label><input id="nt_tg_token"><label>Chat ID</label><input id="nt_tg_chat"><label><input id="nt_wecom_en" type="checkbox" style="width:auto;margin-right:6px">企业微信 启用</label><label>Webhook URL</label><input id="nt_wecom_url"><div style="margin-top:25px;display:flex;justify-content:flex-end;gap:12px"><button class="btn btn-gray" onclick="testNotify()">发送测试</button><button class="btn btn-primary" onclick="saveNotify()">保存配置</button></div></div><div class="tab-content" id="tab3"><label>本节点 API 令牌</label><div style="display:flex;gap:10px;align-items:center"><input id="local_token" readonly><button class="btn btn-gray" onclick="copyToken()">复制</button><button class="btn btn-primary" onclick="regenerateToken()">重新生成</button></div><div style="margin-top:18px;font-weight:600">远程节点列表</div><button class="btn btn-primary" style="margin-top:10px" onclick="openAddNode()"><i class="fas fa-plus"></i> 添加节点</button><div style="margin-top:10px;max-height:260px;overflow:auto"><table id="nodeTable"><thead><tr><th>名称</th><th>地址</th><th>状态</th><th style="text-align:right">操作</th></tr></thead><tbody id="nodeList"></tbody></table></div></div></div></div><div id="batchModal" class="modal"><div class="modal-box" style="max-width:600px"><h3>批量添加规则</h3><p style="color:#666;font-size:0.85rem;margin-bottom:10px">格式：备注,监听端口,目标地址<br>一行一条，例如：<br>日本落地,10001,1.1.1.1:443</p><textarea id="batch_input" rows="10" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:10px;font-family:monospace" placeholder="备注,监听端口,目标地址"></textarea><div style="margin-top:25px;display:flex;justify-content:flex-end;gap:12px"><button class="btn btn-gray" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="saveBatch()">开始导入</button></div></div></div>
 <div id="restoreModal" class="modal"><div class="modal-box"><h3>恢复备份</h3><p style="color:#ef4444;font-size:0.9rem;margin-bottom:15px">警告：导入操作将覆盖当前所有规则！</p><textarea id="restore_input" rows="8" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:10px;font-family:monospace;font-size:0.8rem"></textarea><div style="margin-top:25px;display:flex;justify-content:flex-end;gap:12px"><button class="btn btn-gray" onclick="closeModal()">取消</button><button class="btn btn-danger" onclick="doRestore()">确认覆盖</button></div></div></div>
@@ -1556,12 +1638,13 @@ let statusHtml=`<span class="status-dot ${r.enabled?'bg-green':'bg-gray'}"></spa
 if(r.status_msg) statusHtml+=` <span style="font-size:0.8rem;color:#ef4444">(${r.status_msg})</span>`;
 const btns=`<button class="btn btn-gray" onclick="openView('${r.id}')"><i class="fas fa-eye"></i></button><button class="btn btn-gray" onclick="tog('${r.id}')"><i class="fas ${r.enabled?'fa-pause':'fa-play'}"></i></button><button class="btn btn-primary" onclick="openEdit('${r.id}')"><i class="fas fa-edit"></i></button><button class="btn btn-danger" onclick="del('${r.id}')"><i class="fas fa-trash-alt"></i></button>`;
 const isMob=window.innerWidth<768;
+let targetHtml=r.remote;if(r.remote_list&&r.remote_list.length>0){const opts=r.remote_list.map((t,i)=>`<option value="${i}" ${t.address===r.remote?'selected':''}>${t.label||t.address}</option>`).join('');targetHtml=`<select onchange="quickSwitch('${r.id}',this.value)" style="padding:4px 8px;border-radius:6px;border:1px solid rgba(0,0,0,0.1);background:rgba(255,255,255,0.8);font-size:0.85rem;max-width:150px"><option value="-1">${r.remote}</option>${opts}</select>`;}
 let tfStr = fmtBytes(r.traffic_used);
 if(r.traffic_limit > 0) tfStr += ` / ${fmtBytes(r.traffic_limit)}`;
-let extra=[];if(r.bandwidth_enabled && r.bandwidth_limit) extra.push(`限速:${r.bandwidth_limit}`);extra.push(`计费:${r.billing_mode==='double'?'双向':'单向'}`);if(r.reset_day && r.reset_day>0) extra.push(`重置:${r.reset_day}日`);if(extra.length) tfStr += `<div style="font-size:0.75rem;color:#6b7280;margin-top:4px">${extra.join(' | ')}</div>`;if(isMob){row.innerHTML=`<td data-label="状态">${statusHtml}</td><td data-label="备注"><strong>${r.name}</strong></td><td data-label="监听">${r.listen}</td><td data-label="目标">${r.remote}</td><td data-label="流量">${tfStr}</td><td data-label="操作">${btns.replace(/class="btn/g,'class="btn btn-sm')}</td>`;}
-else{row.innerHTML=`<td data-label="状态">${statusHtml}</td><td data-label="备注"><strong>${r.name}</strong></td><td data-label="监听">${r.listen}</td><td data-label="目标">${r.remote}</td><td data-label="流量">${tfStr}</td><td data-label="操作" style="display:flex;gap:6px;justify-content:flex-end;padding-right:15px">${btns}</td>`;}t.appendChild(row)})}}
-function openAddModal(){curId=null;$('modalTitle').innerText='添加规则';['n','l','r','e','t_val'].forEach(x=>$('mod_'+x).value='');$('mod_bw_en').checked=false;$('mod_bw_rate').value='';$('mod_billing').value='single';$('mod_reset_day').value='0';const qn=$('n').value.trim();const ql=$('l').value.trim();const qr=$('r').value.trim();if(qn)$('mod_n').value=qn;if(ql)$('mod_l').value=ql;if(qr)$('mod_r').value=qr;$('ruleModal').style.display='flex'}
-function openEdit(id){curId=id;const r=rules.find(x=>x.id===id);$('modalTitle').innerText='编辑规则';$('mod_n').value=r.name;$('mod_l').value=r.listen.replace('0.0.0.0:','');$('mod_r').value=r.remote;if(r.expire_date){const dt=new Date(r.expire_date);dt.setMinutes(dt.getMinutes()-dt.getTimezoneOffset());$('mod_e').value=dt.toISOString().slice(0,16)}else{$('mod_e').value=''}if(r.traffic_limit){if(r.traffic_limit>=1073741824){$('mod_t_val').value=(r.traffic_limit/1073741824).toFixed(2);$('mod_t_unit').value='GB'}else{$('mod_t_val').value=(r.traffic_limit/1048576).toFixed(2);$('mod_t_unit').value='MB'}}else{$('mod_t_val').value=''}$('mod_bw_en').checked=!!r.bandwidth_enabled;$('mod_bw_rate').value=r.bandwidth_limit||'';$('mod_billing').value=r.billing_mode||'single';$('mod_reset_day').value=r.reset_day||0;$('ruleModal').style.display='flex'}
+let extra=[];if(r.bandwidth_enabled && r.bandwidth_limit) extra.push(`限速:${r.bandwidth_limit}`);extra.push(`计费:${r.billing_mode==='double'?'双向':'单向'}`);if(r.reset_day && r.reset_day>0) extra.push(`重置:${r.reset_day}日`);if(extra.length) tfStr += `<div style="font-size:0.75rem;color:#6b7280;margin-top:4px">${extra.join(' | ')}</div>`;if(isMob){row.innerHTML=`<td data-label="状态">${statusHtml}</td><td data-label="备注"><strong>${r.name}</strong></td><td data-label="监听">${r.listen}</td><td data-label="目标">${targetHtml}</td><td data-label="流量">${tfStr}</td><td data-label="操作">${btns.replace(/class="btn/g,'class="btn btn-sm')}</td>`;}
+else{row.innerHTML=`<td data-label="状态">${statusHtml}</td><td data-label="备注"><strong>${r.name}</strong></td><td data-label="监听">${r.listen}</td><td data-label="目标">${targetHtml}</td><td data-label="流量">${tfStr}</td><td data-label="操作" style="display:flex;gap:6px;justify-content:flex-end;padding-right:15px">${btns}</td>`;}t.appendChild(row)})}}
+function openAddModal(){curId=null;$('modalTitle').innerText='添加规则';['n','l','r','e','t_val'].forEach(x=>$('mod_'+x).value='');$('mod_bw_en').checked=false;$('mod_bw_rate').value='';$('mod_billing').value='single';$('mod_reset_day').value='0';const qn=$('n').value.trim();const ql=$('l').value.trim();const qr=$('r').value.trim();if(qn)$('mod_n').value=qn;if(ql)$('mod_l').value=ql;if(qr)$('mod_r').value=qr;$('targetsSection').style.display='none';$('targetsList').innerHTML='';$('ruleModal').style.display='flex'}
+function openEdit(id){curId=id;const r=rules.find(x=>x.id===id);$('modalTitle').innerText='编辑规则';$('mod_n').value=r.name;$('mod_l').value=r.listen.replace('0.0.0.0:','');$('mod_r').value=r.remote;if(r.expire_date){const dt=new Date(r.expire_date);dt.setMinutes(dt.getMinutes()-dt.getTimezoneOffset());$('mod_e').value=dt.toISOString().slice(0,16)}else{$('mod_e').value=''}if(r.traffic_limit){if(r.traffic_limit>=1073741824){$('mod_t_val').value=(r.traffic_limit/1073741824).toFixed(2);$('mod_t_unit').value='GB'}else{$('mod_t_val').value=(r.traffic_limit/1048576).toFixed(2);$('mod_t_unit').value='MB'}}else{$('mod_t_val').value=''}$('mod_bw_en').checked=!!r.bandwidth_enabled;$('mod_bw_rate').value=r.bandwidth_limit||'';$('mod_billing').value=r.billing_mode||'single';$('mod_reset_day').value=r.reset_day||0;$('targetsSection').style.display='none';$('targetsList').innerHTML='';$('ruleModal').style.display='flex'}
 function openView(id){curId=id;const r=rules.find(x=>x.id===id);$('view_n').innerText=r.name;$('view_l').innerText=r.listen;$('view_r').innerText=r.remote;if(r.expire_date){$('view_expire_sec').style.display='block';$('view_e_date').innerText=fmtDate(r.expire_date);$('view_e_remain').innerText=getRemain(r.expire_date)}else{$('view_expire_sec').style.display='none'}$('view_traffic_sec').style.display='block';$('view_t_used').innerText=fmtBytes(r.traffic_used);if(r.traffic_limit){$('view_t_limit').innerText=fmtBytes(r.traffic_limit);const pct=Math.min(100,(r.traffic_used/r.traffic_limit)*100);$('view_t_bar').style.width=pct+'%';$('view_t_bar').style.background=pct>90?'#ef4444':'#3b82f6'}else{$('view_t_limit').innerText='无限制';$('view_t_bar').style.width='0%'}$('view_bw').innerText=(r.bandwidth_enabled&&r.bandwidth_limit)?r.bandwidth_limit:'未启用';$('view_bill').innerText=r.billing_mode==='double'?'双向':'单向';$('view_reset').innerText=(r.reset_day&&r.reset_day>0)?`每月${r.reset_day}日`:'不重置';$('viewModal').style.display='flex'}
 async function saveRule(){
     let [n,l,r,e,tv,tu]=['n','l','r','e','t_val','t_unit'].map(x=>$('mod_'+x).value.trim());
@@ -1598,6 +1681,17 @@ async function delAll(){if(rules.length===0||!confirm('⚠️ 确定清空？'))
 function downloadBackup(){if(rules.length===0)return alert('无数据');window.location.href='/api/backup'}
 function openRestore(){$('restoreModal').style.display='flex'}
 async function doRestore(){try{const p=JSON.parse($('restore_input').value);if(!Array.isArray(p))throw 1;if(!confirm('确定覆盖？'))return;await fetch('/api/restore',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});location.reload()}catch(e){alert('JSON格式错误')}}
+
+let curTargets=[];
+async function loadTargets(id){const r=await fetch(`/api/rules/${id}/targets`);if(!r.ok)return;const d=await r.json();curTargets=d.targets||[];renderTargets();}
+function renderTargets(){const t=$('targetsList');t.innerHTML='';curTargets.forEach((tgt,i)=>{const div=document.createElement('div');div.style='display:flex;gap:8px;align-items:center;margin-top:8px';div.innerHTML=`<input value="${tgt.address}" placeholder="目标地址" style="flex:2" onchange="curTargets[${i}].address=this.value"><input value="${tgt.label||''}" placeholder="标签(可选)" style="flex:1" onchange="curTargets[${i}].label=this.value"><button type="button" class="btn btn-danger" style="padding:6px 10px" onclick="removeTarget(${i})"><i class="fas fa-times"></i></button><button type="button" class="btn btn-primary" style="padding:6px 10px" onclick="switchToTarget(${i})" title="切换到此目标"><i class="fas fa-exchange-alt"></i></button>`;t.appendChild(div);});}
+function addTargetRow(){curTargets.push({address:'',label:''});renderTargets();}
+function removeTarget(idx){curTargets.splice(idx,1);renderTargets();}
+async function switchToTarget(idx){if(!curId||idx<0||idx>=curTargets.length)return;const tgt=curTargets[idx];if(!tgt.address){alert('目标地址不能为空');return;}if(!confirm(`确定切换到 ${tgt.label||tgt.address}？`))return;const r=await fetch(`/api/rules/${curId}/switch-target`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({index:idx})});const d=await r.json();if(d.status==='ok'){alert('切换成功');closeModal();load();}else{alert(d.message||'切换失败');}}
+async function saveTargetsForRule(){if(!curId)return;for(const t of curTargets){if(!t.address)continue;await fetch(`/api/rules/${curId}/targets`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({address:t.address,label:t.label||''})});}}
+async function quickSwitch(ruleId,idx){idx=parseInt(idx);if(idx<0)return;const r=await fetch(`/api/rules/${ruleId}/switch-target`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({index:idx})});const d=await r.json();if(d.status==='ok'){load();}else{alert(d.message||'切换失败');}}
+function openTrafficDog(){alert('流量狗功能：请在终端执行 bash port-traffic-dog.sh 进入端口流量监控管理');}
+
 setInterval(load, 3000);
 load();window.addEventListener('resize',render);
 </script></body></html>
