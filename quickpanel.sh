@@ -1,7 +1,7 @@
 #!/bin/bash
 
-URL_AMD="https://github.com/wsuming97/realm-suming/releases/download/realm/realm-panel-amd.tar.gz"
-URL_ARM="https://github.com/wsuming97/realm-suming/releases/download/realm/realm-panel-arm.tar.gz"
+URL_AMD="https://github.com/hiapb/hia-realm/releases/download/realm/realm-panel-amd.tar.gz"
+URL_ARM="https://github.com/hiapb/hia-realm/releases/download/realm/realm-panel-arm.tar.gz"
 
 PANEL_PORT="4794"
 DEFAULT_USER="admin"
@@ -68,12 +68,28 @@ rm -f /tmp/realm-panel.tar.gz
 curl -L "$DOWNLOAD_URL" -o /tmp/realm-panel.tar.gz >/dev/null 2>&1
 if [ $? -ne 0 ]; then
     echo -e "${RED} [失败] 下载失败，请检查 Release 链接是否有效${RESET}"
+    echo -e "${YELLOW}提示：请确保 Releases 中已上传 realm-panel-amd.tar.gz / realm-panel-arm.tar.gz，或改用自编译部署${RESET}"
     exit 1
 fi
 
 systemctl stop realm-panel >/dev/null 2>&1
 
+if ! tar -tzf /tmp/realm-panel.tar.gz >/dev/null 2>&1; then
+    echo -e "${RED} [失败] 下载内容不是有效的 tar 包${RESET}"
+    echo -e "${YELLOW}提示：可能未上传 Release 资源，请改用自编译部署${RESET}"
+    exit 1
+fi
+if ! tar -tzf /tmp/realm-panel.tar.gz | grep -q '^realm-panel$'; then
+    echo -e "${RED} [失败] 包内未找到 realm-panel，请确认 Release 资源${RESET}"
+    echo -e "${YELLOW}提示：Release 需要包含 realm-panel-amd.tar.gz / realm-panel-arm.tar.gz${RESET}"
+    exit 1
+fi
 tar -xzvf /tmp/realm-panel.tar.gz -C /usr/local/bin/ >/dev/null 2>&1
+if [ ! -f "$BINARY_PATH" ]; then
+    echo -e "${RED} [失败] realm-panel 解压失败${RESET}"
+    echo -e "${YELLOW}提示：可尝试自编译部署${RESET}"
+    exit 1
+fi
 chmod +x "$BINARY_PATH"
 rm -f /tmp/realm-panel.tar.gz
 echo -e "${GREEN} [完成]${RESET}"

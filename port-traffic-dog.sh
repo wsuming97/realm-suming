@@ -18,7 +18,7 @@ readonly NC='\033[0m'
 # 网络超时设置
 readonly SHORT_CONNECT_TIMEOUT=5
 readonly SHORT_MAX_TIMEOUT=7
-readonly SCRIPT_URL="https://raw.githubusercontent.com/wsuming97/realm-suming/master/port-traffic-dog.sh"
+readonly SCRIPT_URL="https://raw.githubusercontent.com/hiapb/hia-realm/main/port-traffic-dog.sh"
 readonly SHORTCUT_COMMAND="dog"
 
 detect_system() {
@@ -848,8 +848,8 @@ show_main_menu() {
     local daily_total=$(get_daily_total_traffic)
 
     echo -e "${BLUE}=== 端口流量狗 v$SCRIPT_VERSION ===${NC}"
-    echo -e "${GREEN}介绍主页:${NC}https://zywe.de | ${GREEN}项目开源:${NC}https://github.com/zywe03/realm-xwPF"
-    echo -e "${GREEN}一只轻巧的‘守护犬’，时刻守护你的端口流量 | 快捷命令: dog${NC}"
+    echo -e "${GREEN}介绍主页:${NC}https://hiapb.github.io/hia-realm | ${GREEN}项目开源:${NC}https://github.com/hiapb/hia-realm"
+    echo -e "${GREEN}一只轻巧的'守护犬'，时刻守护你的端口流量 | 快捷命令: dog${NC}"
     echo
 
     echo -e "${GREEN}状态: 监控中${NC} | ${BLUE}守护端口: ${port_count}个${NC} | ${YELLOW}端口总流量: $daily_total${NC}"
@@ -2387,13 +2387,13 @@ download_with_sources() {
 download_notification_modules() {
     local notifications_dir="$CONFIG_DIR/notifications"
     local temp_dir=$(mktemp -d)
-    local repo_url="https://github.com/zywe03/realm-xwPF/archive/refs/heads/main.zip"
+    local repo_url="https://github.com/hiapb/hia-realm/archive/refs/heads/main.zip"
 
     # 下载解压复制清理：每次都覆盖更新确保版本一致
     if download_with_sources "$repo_url" "$temp_dir/repo.zip" &&
        (cd "$temp_dir" && unzip -q repo.zip) &&
        rm -rf "$notifications_dir" &&
-       cp -r "$temp_dir/realm-xwPF-main/notifications" "$notifications_dir" &&
+       cp -r "$temp_dir/hia-realm-main/notifications" "$notifications_dir" &&
        chmod +x "$notifications_dir"/*.sh; then
         rm -rf "$temp_dir"
         return 0
@@ -2693,7 +2693,7 @@ format_status_message() {
     local daily_total=$(get_daily_total_traffic)
 
     local message="<b>${notification_icon} 端口流量狗 v${SCRIPT_VERSION}</b> | ⏰ ${timestamp}
-介绍主页:<code>https://zywe.de</code> | 项目开源:<code>https://github.com/zywe03/realm-xwPF</code>
+介绍主页:<code>https://hiapb.github.io/hia-realm</code> | 项目开源:<code>https://github.com/hiapb/hia-realm</code>
 一只轻巧的'守护犬'，时刻守护你的端口流量 | 快捷命令: dog
 ---
 状态: 监控中 | 守护端口: ${port_count}个 | 端口总流量: ${daily_total}
@@ -2715,7 +2715,7 @@ format_text_status_message() {
     local daily_total=$(get_daily_total_traffic)
 
     local message="${notification_icon} 端口流量狗 v${SCRIPT_VERSION} | ⏰ ${timestamp}
-介绍主页: https://zywe.de | 项目开源: https://github.com/zywe03/realm-xwPF
+介绍主页: https://hiapb.github.io/hia-realm | 项目开源: https://github.com/hiapb/hia-realm
 一只轻巧的'守护犬'，时刻守护你的端口流量 | 快捷命令: dog
 ---
 状态: 监控中 | 守护端口: ${port_count}个 | 端口总流量: ${daily_total}
@@ -2737,7 +2737,7 @@ format_markdown_status_message() {
     local daily_total=$(get_daily_total_traffic)
 
     local message="**${notification_icon} 端口流量狗 v${SCRIPT_VERSION}** | ⏰ ${timestamp}
-介绍主页: \`https://zywe.de\` | 项目开源: \`https://github.com/zywe03/realm-xwPF\`
+介绍主页: \`https://hiapb.github.io/hia-realm\` | 项目开源: \`https://github.com/hiapb/hia-realm\`
 一只轻巧的'守护犬'，时刻守护你的端口流量 | 快捷命令: dog
 ---
 **状态**: 监控中 | **守护端口**: ${port_count}个 | **端口总流量**: ${daily_total}
@@ -2819,8 +2819,8 @@ main() {
                 ;;
             --version)
                 echo -e "${BLUE}$SCRIPT_NAME v$SCRIPT_VERSION${NC}"
-                echo -e "${GREEN}介绍主页:${NC} https://zywe.de"
-                echo -e "${GREEN}项目开源:${NC} https://github.com/zywe03/realm-xwPF"
+                echo -e "${GREEN}介绍主页:${NC} https://hiapb.github.io/hia-realm"
+                echo -e "${GREEN}项目开源:${NC} https://github.com/hiapb/hia-realm"
                 exit 0
                 ;;
             --install)

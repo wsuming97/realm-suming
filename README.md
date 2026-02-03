@@ -365,6 +365,9 @@ example.com:443
 - **快速安装部署**
 - **自编译部署**（Rust 编译）
 
+> 快速安装依赖 GitHub Releases 预编译包（`realm-panel-amd.tar.gz` / `realm-panel-arm.tar.gz`）。  
+> 若未上传该包，快速安装会失败并提示改用自编译（主菜单会自动尝试自编译）。
+
 ### 面板默认信息
 
 - 默认端口：`4794`
