@@ -18,7 +18,7 @@ CYAN="\033[36m"
 RESET="\033[0m"
 
 echo -e "${GREEN}==========================================${RESET}"
-echo -e "${GREEN}             Realm 面板 一键部署          ${RESET}"
+echo -e "${GREEN}             Realm 面板 一键部�?         ${RESET}"
 echo -e "${GREEN}==========================================${RESET}"
 
 if [ -f "$DATA_FILE" ] && [ -f "$SERVICE_FILE" ]; then
@@ -31,12 +31,12 @@ if [ -f "$DATA_FILE" ] && [ -f "$SERVICE_FILE" ]; then
     if [ -n "$OLD_USER" ] && [ -n "$OLD_PASS" ]; then
         DEFAULT_USER="$OLD_USER"
         DEFAULT_PASS="$OLD_PASS"
-        echo -e "    已保留账号: ${GREEN}$DEFAULT_USER${RESET}"
+        echo -e "    已保留账�? ${GREEN}$DEFAULT_USER${RESET}"
     fi
 
     if [ -n "$OLD_PORT" ]; then
         PANEL_PORT="$OLD_PORT"
-        echo -e "    已保留端口: ${GREEN}$PANEL_PORT${RESET}"
+        echo -e "    已保留端�? ${GREEN}$PANEL_PORT${RESET}"
     fi
 fi
 
@@ -67,7 +67,7 @@ echo -n ">>> 正在下载面板..."
 rm -f /tmp/realm-panel.tar.gz
 curl -L "$DOWNLOAD_URL" -o /tmp/realm-panel.tar.gz >/dev/null 2>&1
 if [ $? -ne 0 ]; then
-    echo -e "${RED} [失败] 下载失败，请检查 Release 链接是否有效${RESET}"
+    echo -e "${RED} [失败] 下载失败，请检�?Release 链接是否有效${RESET}"
     exit 1
 fi
 
@@ -109,7 +109,7 @@ systemctl restart realm-panel >/dev/null 2>&1
 IP=$(curl -s4 ifconfig.me || hostname -I | awk '{print $1}')
 echo -e ""
 echo -e "${GREEN}==========================================${RESET}"
-echo -e "${GREEN}✅ Realm 转发面板部署成功!${RESET}"
+echo -e "${GREEN}�?Realm 转发面板部署成功!${RESET}"
 echo -e "${GREEN}==========================================${RESET}"
 echo -e "访问地址 : ${YELLOW}http://${IP}:${PANEL_PORT}${RESET}"
 echo -e "当前用户 : ${YELLOW}${DEFAULT_USER}${RESET}"
