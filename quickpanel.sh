@@ -1,7 +1,7 @@
 #!/bin/bash
 
-URL_AMD="https://github.com/hiapb/hia-realm/releases/download/realm/realm-panel-amd.tar.gz"
-URL_ARM="https://github.com/hiapb/hia-realm/releases/download/realm/realm-panel-arm.tar.gz"
+URL_AMD="https://github.com/wsuming97/realm-suming/releases/download/realm/realm-panel-amd.tar.gz"
+URL_ARM="https://github.com/wsuming97/realm-suming/releases/download/realm/realm-panel-arm.tar.gz"
 
 PANEL_PORT="4794"
 DEFAULT_USER="admin"

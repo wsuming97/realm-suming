@@ -269,7 +269,7 @@ cleanup_realm_firewall() {
 
 uninstall_realm() {
   echo -e "${YELLOW}开始卸载 Realm 面板...${RESET}"
-  bash <(curl -fsSL https://raw.githubusercontent.com/hiapb/hia-realm/main/unipan.sh) || true
+  bash <(curl -fsSL https://raw.githubusercontent.com/wsuming97/realm-suming/main/unipan.sh) || true
 
   cleanup_realm_firewall
 
@@ -831,17 +831,17 @@ manage_panel() {
             read -p "请选择 [0-2]: " INST_OPT
             case "$INST_OPT" in
                 1)
-                    if ! bash <(curl -fsSL https://raw.githubusercontent.com/hiapb/hia-realm/main/quickpanel.sh); then
+                    if ! bash <(curl -fsSL https://raw.githubusercontent.com/wsuming97/realm-suming/main/quickpanel.sh); then
                         echo -e "${YELLOW}快速安装失败，尝试自编译部署...${RESET}"
-                        bash <(curl -fsSL https://raw.githubusercontent.com/hiapb/hia-realm/main/panel.sh)
+                        bash <(curl -fsSL https://raw.githubusercontent.com/wsuming97/realm-suming/main/panel.sh)
                     fi
                     ;;
-                2) bash <(curl -fsSL https://raw.githubusercontent.com/hiapb/hia-realm/main/panel.sh) ;;
+                2) bash <(curl -fsSL https://raw.githubusercontent.com/wsuming97/realm-suming/main/panel.sh) ;;
                 *) return ;;
             esac
             ;;
         2)
-            bash <(curl -fsSL https://raw.githubusercontent.com/hiapb/hia-realm/main/unipan.sh)
+            bash <(curl -fsSL https://raw.githubusercontent.com/wsuming97/realm-suming/main/unipan.sh)
             ;;
         3) update_panel_port ;;
         *) return ;;
@@ -850,7 +850,7 @@ manage_panel() {
 
 run_traffic_dog() {
     local TRAFFIC_DOG_SCRIPT="/usr/local/bin/port-traffic-dog.sh"
-    local TRAFFIC_DOG_URL="https://raw.githubusercontent.com/hiapb/hia-realm/main/port-traffic-dog.sh"
+    local TRAFFIC_DOG_URL="https://raw.githubusercontent.com/wsuming97/realm-suming/main/port-traffic-dog.sh"
     
     if [ -f "$TRAFFIC_DOG_SCRIPT" ]; then
         bash "$TRAFFIC_DOG_SCRIPT"
