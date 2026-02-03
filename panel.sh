@@ -1,11 +1,11 @@
-#!/bin/bash
+ï»¿#!/bin/bash
 
-# =================ÅäÖÃÇøÓò=================
+# =================é…ç½®åŒºåŸŸ=================
 PANEL_PORT="4794"
 DEFAULT_USER="admin"
 DEFAULT_PASS="123456"
 
-# Â·¾¶ÅäÖÃ
+# è·¯å¾„é…ç½®
 REALM_BIN="/usr/local/bin/realm"
 CONFIG_FILE="/etc/realm/config.toml"
 SERVICE_FILE="/etc/systemd/system/realm.service"
@@ -15,7 +15,7 @@ WORK_DIR="/opt/realm_panel"
 PANEL_BIN="/usr/local/bin/realm-panel"
 PANEL_DATA="/etc/realm/panel_data.json"
 
-# ÑÕÉ«
+# é¢œè‰²
 GREEN="\033[32m"
 RED="\033[31m"
 YELLOW="\033[33m"
@@ -23,13 +23,13 @@ CYAN="\033[36m"
 RESET="\033[0m"
 # =========================================
 
-# ×Ô¶¨ÒåÁ´Ãû³Æ
+# è‡ªå®šä¹‰é“¾åç§°
 CHAIN_IN="REALM_IN"
 CHAIN_OUT="REALM_OUT"
 
 need_cmd() {
     if ! command -v "$1" >/dev/null 2>&1; then
-        echo -e "${RED}´íÎó: È±ÉÙ±ØÒªÃüÁî '$1'${RESET}"
+        echo -e "${RED}é”™è¯¯: ç¼ºå°‘å¿…è¦å‘½ä»¤ '$1'${RESET}"
         exit 1
     fi
 }
@@ -53,7 +53,7 @@ run_step() {
     echo -e -n "${CYAN}>>> $1...${RESET}"
     eval "$2" >/dev/null 2>&1 &
     spinner $!
-    echo -e "${GREEN} [Íê³É]${RESET}"
+    echo -e "${GREEN} [å®Œæˆ]${RESET}"
 }
 
 get_arch() {
@@ -73,7 +73,7 @@ get_libc() {
 }
 
 prepare_env_and_fix_compilation() {
-    echo -e "${CYAN}>>> ÕıÔÚÓÅ»¯±àÒë»·¾³...${RESET}"
+    echo -e "${CYAN}>>> æ­£åœ¨ä¼˜åŒ–ç¼–è¯‘ç¯å¢ƒ...${RESET}"
     OS_ARCH=$(uname -m)
     if [ -f /etc/debian_version ]; then
         export DEBIAN_FRONTEND=noninteractive
@@ -89,13 +89,13 @@ prepare_env_and_fix_compilation() {
     fi
 
     if ! command -v cargo >/dev/null 2>&1; then
-        echo -e -n "${CYAN}>>> °²×° Rust ±àÒëÆ÷...${RESET}"
+        echo -e -n "${CYAN}>>> å®‰è£… Rust ç¼–è¯‘å™¨...${RESET}"
         curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y >/dev/null 2>&1 &
         spinner $!
         source "$HOME/.cargo/env"
-        echo -e "${GREEN} [Íê³É]${RESET}"
+        echo -e "${GREEN} [å®Œæˆ]${RESET}"
     else
-        echo -e "${GREEN}>>> Rust ÒÑ°²×°${RESET}"
+        echo -e "${GREEN}>>> Rust å·²å®‰è£…${RESET}"
         if [ -f "$HOME/.cargo/env" ]; then source "$HOME/.cargo/env"; fi
     fi
 }
@@ -143,36 +143,36 @@ install_realm_smart() {
     need_cmd tar
     need_cmd systemctl
 
-    echo -e "${CYAN}>>> ¼ì²é Realm °æ±¾...${RESET}"
+    echo -e "${CYAN}>>> æ£€æŸ¥ Realm ç‰ˆæœ¬...${RESET}"
     local latest_ver local_ver
     latest_ver=$(get_latest_realm_version_tag)
     local_ver=$(get_local_realm_version)
 
     if [ -z "$latest_ver" ]; then
-        echo -e "${RED}ÎŞ·¨»ñÈ¡×îĞÂ°æ±¾ºÅ£¬Ç¿ÖÆÖØ×°${RESET}"
+        echo -e "${RED}æ— æ³•è·å–æœ€æ–°ç‰ˆæœ¬å·ï¼Œå¼ºåˆ¶é‡è£…${RESET}"
     elif [ "$local_ver" == "0.0.0" ]; then
-        echo -e "${GREEN}¼ì²âµ½Î´°²×°£¬×¼±¸¿ªÊ¼°²×° Realm ($latest_ver)...${RESET}"
+        echo -e "${GREEN}æ£€æµ‹åˆ°æœªå®‰è£…ï¼Œå‡†å¤‡å¼€å§‹å®‰è£… Realm ($latest_ver)...${RESET}"
     elif [ "$latest_ver" == "$local_ver" ]; then
-        echo -e "${GREEN}±¾µØ Realm ÒÑÊÇ×îĞÂ°æ ($local_ver)£¬Ìø¹ı°²×°${RESET}"
+        echo -e "${GREEN}æœ¬åœ° Realm å·²æ˜¯æœ€æ–°ç‰ˆ ($local_ver)ï¼Œè·³è¿‡å®‰è£…${RESET}"
         ensure_config_file
         if [ -f "$SERVICE_FILE" ]; then return 0; fi
     else
-        echo -e "${YELLOW}·¢ÏÖĞÂ°æ±¾: $latest_ver (µ±Ç°: $local_ver)£¬×¼±¸¸üĞÂ...${RESET}"
+        echo -e "${YELLOW}å‘ç°æ–°ç‰ˆæœ¬: $latest_ver (å½“å‰: $local_ver)ï¼Œå‡†å¤‡æ›´æ–°...${RESET}"
     fi
 
     local url
     url="$(get_latest_realm_url || true)"
-    if [ -z "$url" ]; then echo -e "${RED}»ñÈ¡ÏÂÔØÁ´½ÓÊ§°Ü${RESET}"; exit 1; fi
+    if [ -z "$url" ]; then echo -e "${RED}è·å–ä¸‹è½½é“¾æ¥å¤±è´¥${RESET}"; exit 1; fi
 
-    echo -e "${GREEN}ÏÂÔØµØÖ·£º$url${RESET}"
+    echo -e "${GREEN}ä¸‹è½½åœ°å€ï¼š$url${RESET}"
     mkdir -p "$TMP_DIR"
     cd "$TMP_DIR" || exit 1
     rm -f realm.tar.gz realm
 
-    if ! curl -L -o realm.tar.gz "$url"; then echo -e "${RED}ÏÂÔØÊ§°Ü${RESET}"; exit 1; fi
+    if ! curl -L -o realm.tar.gz "$url"; then echo -e "${RED}ä¸‹è½½å¤±è´¥${RESET}"; exit 1; fi
     
     tar -xzf realm.tar.gz
-    if [ ! -f "realm" ]; then echo -e "${RED}½âÑ¹Ê§°Ü${RESET}"; exit 1; fi
+    if [ ! -f "realm" ]; then echo -e "${RED}è§£å‹å¤±è´¥${RESET}"; exit 1; fi
 
     systemctl stop realm >/dev/null 2>&1
     mv realm "$REALM_BIN"
@@ -198,26 +198,26 @@ EOF
     systemctl daemon-reload
     systemctl enable realm >/dev/null 2>&1 || true
     systemctl restart realm
-    echo -e "${GREEN}Realm °²×°Íê³É${RESET}"
+    echo -e "${GREEN}Realm å®‰è£…å®Œæˆ${RESET}"
     cd ~
     rm -rf "$TMP_DIR"
 }
 
 if [ "$EUID" -ne 0 ]; then
-    echo -e "${RED}ÇëÒÔ root ÓÃ»§ÔËĞĞ£¡${RESET}"
+    echo -e "${RED}è¯·ä»¥ root ç”¨æˆ·è¿è¡Œï¼${RESET}"
     exit 1
 fi
 
 clear
 echo -e "${GREEN}==================================${RESET}"
-echo -e "${GREEN}          Realm Ãæ°å Ò»¼ü²¿Êğ        ${RESET}"
+echo -e "${GREEN}          Realm é¢æ¿ ä¸€é”®éƒ¨ç½²        ${RESET}"
 echo -e "${GREEN}==================================${RESET}"
 
 prepare_env_and_fix_compilation
 install_realm_smart
 
 mkdir -p "$(dirname "$PANEL_DATA")"
-run_step "Éú³ÉÃæ°åÔ´´úÂë" "
+run_step "ç”Ÿæˆé¢æ¿æºä»£ç " "
 rm -rf '$WORK_DIR'
 mkdir -p '$WORK_DIR/src'
 "
@@ -261,7 +261,7 @@ use rand::{distributions::Alphanumeric, Rng};
 const REALM_CONFIG: &str = "/etc/realm/config.toml";
 const DATA_FILE: &str = "/etc/realm/panel_data.json";
 
-// ×Ô¶¨ÒåÁ´Ãû³Æ
+// è‡ªå®šä¹‰é“¾åç§°
 const CHAIN_IN: &str = "REALM_IN";
 const CHAIN_OUT: &str = "REALM_OUT";
 
@@ -692,7 +692,7 @@ fn check_monthly_resets(state: &Arc<AppState>) {
             last_map.remove(&port);
         }
 
-        notify_msgs.push(format!("¹æÔò {} ÒÑÖ´ĞĞÔÂ¶ÈÁ÷Á¿ÖØÖÃ¡£", rule.name));
+        notify_msgs.push(format!("è§„åˆ™ {} å·²æ‰§è¡Œæœˆåº¦æµé‡é‡ç½®ã€‚", rule.name));
     }
 
     if changed {
@@ -784,20 +784,20 @@ fn update_traffic_and_check(state: &Arc<AppState>) {
 
         if rule.expire_date > 0 && now_ts > rule.expire_date {
             rule.enabled = false;
-            rule.status_msg = "ÒÑ¹ıÆÚ".to_string();
+            rule.status_msg = "å·²è¿‡æœŸ".to_string();
             changed = true;
             remove_iptables_rule(rule);
             let _ = remove_tc_limit(&port);
-            notify_msgs.push(format!("¹æÔò {} ÒÑ¹ıÆÚ£¬ÒÑ×Ô¶¯Í£ÓÃ¡£", rule.name));
+            notify_msgs.push(format!("è§„åˆ™ {} å·²è¿‡æœŸï¼Œå·²è‡ªåŠ¨åœç”¨ã€‚", rule.name));
         }
 
         if rule.traffic_limit > 0 && rule.traffic_used >= rule.traffic_limit {
             rule.enabled = false;
-            rule.status_msg = "Á÷Á¿ºÄ¾¡".to_string();
+            rule.status_msg = "æµé‡è€—å°½".to_string();
             changed = true;
             remove_iptables_rule(rule);
             let _ = remove_tc_limit(&port);
-            notify_msgs.push(format!("¹æÔò {} Á÷Á¿ÒÑºÄ¾¡£¬ÒÑ×Ô¶¯Í£ÓÃ¡£", rule.name));
+            notify_msgs.push(format!("è§„åˆ™ {} æµé‡å·²è€—å°½ï¼Œå·²è‡ªåŠ¨åœç”¨ã€‚", rule.name));
         }
     }
 
@@ -977,12 +977,12 @@ async fn add_rule(cookies: Cookies, headers: HeaderMap, State(state): State<Arc<
     let mut data = state.data.lock().unwrap();
     if !check_auth_or_token(&cookies, &headers, &data) { return StatusCode::UNAUTHORIZED.into_response(); }
     if req.name.trim().is_empty() || req.listen.trim().is_empty() || req.remote.trim().is_empty() {
-        return Json(serde_json::json!({"status":"error", "message": "ËùÓĞ×Ö¶Î¶¼²»ÄÜÎª¿Õ£¡"})).into_response();
+        return Json(serde_json::json!({"status":"error", "message": "æ‰€æœ‰å­—æ®µéƒ½ä¸èƒ½ä¸ºç©ºï¼"})).into_response();
     }
     let new_port = get_port(&req.listen);
-    if new_port.is_empty() { return Json(serde_json::json!({"status":"error", "message": "¶Ë¿Ú¸ñÊ½´íÎó"})).into_response(); }
+    if new_port.is_empty() { return Json(serde_json::json!({"status":"error", "message": "ç«¯å£æ ¼å¼é”™è¯¯"})).into_response(); }
     if data.rules.iter().any(|r| get_port(&r.listen) == new_port) {
-        return Json(serde_json::json!({"status":"error", "message": "¶Ë¿ÚÒÑ±»Õ¼ÓÃ£¡"})).into_response();
+        return Json(serde_json::json!({"status":"error", "message": "ç«¯å£å·²è¢«å ç”¨ï¼"})).into_response();
     }
     let billing_mode = if req.billing_mode.is_empty() { default_billing_mode() } else { req.billing_mode.clone() };
     let remark = if req.remark.trim().is_empty() { req.name.clone() } else { req.remark.clone() };
@@ -1046,7 +1046,7 @@ async fn batch_add_rules(cookies: Cookies, headers: HeaderMap, State(state): Sta
         added_count += 1;
     }
     if added_count > 0 { save_json(&data); save_config_toml(&data); }
-    Json(serde_json::json!({"status":"ok", "message": format!("³É¹¦Ìí¼Ó {} Ìõ¹æÔò", added_count)})).into_response()
+    Json(serde_json::json!({"status":"ok", "message": format!("æˆåŠŸæ·»åŠ  {} æ¡è§„åˆ™", added_count)})).into_response()
 }
 async fn delete_all_rules(cookies: Cookies, headers: HeaderMap, State(state): State<Arc<AppState>>) -> Response {
     let mut data = state.data.lock().unwrap();
@@ -1058,7 +1058,7 @@ async fn delete_all_rules(cookies: Cookies, headers: HeaderMap, State(state): St
     flush_realm_chains();
     data.rules.clear();
     save_json(&data); save_config_toml(&data);
-    Json(serde_json::json!({"status":"ok", "message": "ËùÓĞ¹æÔòÒÑÇå¿Õ"})).into_response()
+    Json(serde_json::json!({"status":"ok", "message": "æ‰€æœ‰è§„åˆ™å·²æ¸…ç©º"})).into_response()
 }
 async fn download_backup(cookies: Cookies, State(state): State<Arc<AppState>>) -> Response {
     let data = state.data.lock().unwrap();
@@ -1074,7 +1074,7 @@ async fn download_backup(cookies: Cookies, State(state): State<Arc<AppState>>) -
 async fn restore_backup(cookies: Cookies, State(state): State<Arc<AppState>>, Json(backup_rules): Json<Vec<Rule>>) -> Response {
     let mut data = state.data.lock().unwrap();
     if !check_auth(&cookies, &data) { return StatusCode::UNAUTHORIZED.into_response(); }
-    if backup_rules.is_empty() { return Json(serde_json::json!({"status": "error", "message": "µ¼ÈëµÄÊı¾İÎª¿Õ"})).into_response(); }
+    if backup_rules.is_empty() { return Json(serde_json::json!({"status": "error", "message": "å¯¼å…¥çš„æ•°æ®ä¸ºç©º"})).into_response(); }
     flush_realm_chains();
     data.rules = backup_rules;
     data.rules.retain(|r| r.name != "system-keepalive");
@@ -1088,7 +1088,7 @@ async fn restore_backup(cookies: Cookies, State(state): State<Arc<AppState>>, Js
         }
     }
     save_json(&data); save_config_toml(&data);
-    Json(serde_json::json!({"status":"ok", "message": format!("³É¹¦»Ö¸´ {} Ìõ¹æÔò", data.rules.len())})).into_response()
+    Json(serde_json::json!({"status":"ok", "message": format!("æˆåŠŸæ¢å¤ {} æ¡è§„åˆ™", data.rules.len())})).into_response()
 }
 async fn toggle_rule(cookies: Cookies, headers: HeaderMap, State(state): State<Arc<AppState>>, Path(id): Path<String>) -> Response {
     let mut data = state.data.lock().unwrap();
@@ -1168,7 +1168,7 @@ async fn update_rule(cookies: Cookies, headers: HeaderMap, State(state): State<A
     if !check_auth_or_token(&cookies, &headers, &data) { return StatusCode::UNAUTHORIZED.into_response(); }
     let new_port = get_port(&req.listen);
     if data.rules.iter().any(|r| r.id != id && get_port(&r.listen) == new_port) {
-        return Json(serde_json::json!({"status":"error", "message": "¶Ë¿ÚÒÑ±»Õ¼ÓÃ£¡"})).into_response();
+        return Json(serde_json::json!({"status":"error", "message": "ç«¯å£å·²è¢«å ç”¨ï¼"})).into_response();
     }
     if let Some(idx) = data.rules.iter().position(|r| r.id == id) {
         let old_port = get_port(&data.rules[idx].listen);
@@ -1192,7 +1192,7 @@ async fn update_rule(cookies: Cookies, headers: HeaderMap, State(state): State<A
         rule.remark = remark;
 
         if rule.enabled {
-            if rule.status_msg == "Á÷Á¿ºÄ¾¡" && (req.traffic_limit == 0 || req.traffic_limit > rule.traffic_used) {
+            if rule.status_msg == "æµé‡è€—å°½" && (req.traffic_limit == 0 || req.traffic_limit > rule.traffic_used) {
                 rule.status_msg = String::new();
             }
             add_iptables_rule(rule);
@@ -1213,7 +1213,7 @@ async fn update_bandwidth(cookies: Cookies, headers: HeaderMap, State(state): St
     if !check_auth_or_token(&cookies, &headers, &data) { return StatusCode::UNAUTHORIZED.into_response(); }
     if let Some(rule) = data.rules.iter_mut().find(|r| r.id == id) {
         if req.enabled && req.rate.trim().is_empty() {
-            return Json(serde_json::json!({"status":"error", "message": "ÏŞËÙÖµ²»ÄÜÎª¿Õ"})).into_response();
+            return Json(serde_json::json!({"status":"error", "message": "é™é€Ÿå€¼ä¸èƒ½ä¸ºç©º"})).into_response();
         }
         rule.bandwidth_enabled = req.enabled;
         rule.bandwidth_limit = req.rate;
@@ -1231,7 +1231,7 @@ struct ResetDayUpdate {
 async fn update_reset_day(cookies: Cookies, headers: HeaderMap, State(state): State<Arc<AppState>>, Path(id): Path<String>, Json(req): Json<ResetDayUpdate>) -> Response {
     let mut data = state.data.lock().unwrap();
     if !check_auth_or_token(&cookies, &headers, &data) { return StatusCode::UNAUTHORIZED.into_response(); }
-    if req.reset_day > 31 { return Json(serde_json::json!({"status":"error", "message": "ÖØÖÃÈÕ±ØĞëÔÚ 0-31"})).into_response(); }
+    if req.reset_day > 31 { return Json(serde_json::json!({"status":"error", "message": "é‡ç½®æ—¥å¿…é¡»åœ¨ 0-31"})).into_response(); }
     if let Some(rule) = data.rules.iter_mut().find(|r| r.id == id) {
         rule.reset_day = req.reset_day;
         save_json(&data);
@@ -1273,10 +1273,10 @@ async fn test_notifications(cookies: Cookies, State(state): State<Arc<AppState>>
     if !check_auth(&cookies, &data) { return StatusCode::UNAUTHORIZED.into_response(); }
     let cfg = data.notifications.clone();
     if !cfg.telegram_enabled && !cfg.wecom_enabled {
-        return Json(serde_json::json!({"status":"error", "message": "Î´ÆôÓÃÈÎºÎÍ¨Öª"})).into_response();
+        return Json(serde_json::json!({"status":"error", "message": "æœªå¯ç”¨ä»»ä½•é€šçŸ¥"})).into_response();
     }
-    let server_name = if cfg.server_name.trim().is_empty() { "·şÎñÆ÷".to_string() } else { cfg.server_name.clone() };
-    let msg = format!("{} Í¨Öª²âÊÔ£º¶Ë¿ÚÁ÷Á¿¹·Ãæ°åÅäÖÃÒÑÉúĞ§¡£", server_name);
+    let server_name = if cfg.server_name.trim().is_empty() { "æœåŠ¡å™¨".to_string() } else { cfg.server_name.clone() };
+    let msg = format!("{} é€šçŸ¥æµ‹è¯•ï¼šç«¯å£æµé‡ç‹—é¢æ¿é…ç½®å·²ç”Ÿæ•ˆã€‚", server_name);
     drop(data);
 
     let mut ok = true;
@@ -1286,7 +1286,7 @@ async fn test_notifications(cookies: Cookies, State(state): State<Arc<AppState>>
     if ok {
         Json(serde_json::json!({"status":"ok"})).into_response()
     } else {
-        Json(serde_json::json!({"status":"error", "message": "·¢ËÍÊ§°Ü"})).into_response()
+        Json(serde_json::json!({"status":"error", "message": "å‘é€å¤±è´¥"})).into_response()
     }
 }
 #[derive(Deserialize)]
@@ -1327,11 +1327,11 @@ async fn add_node(cookies: Cookies, State(state): State<Arc<AppState>>, Json(req
     let host = req.host.trim().to_string();
     let token = req.api_token.trim().to_string();
     if name.is_empty() || host.is_empty() || token.is_empty() {
-        return Json(serde_json::json!({"status":"error", "message":"Ãû³Æ¡¢µØÖ·ºÍÁîÅÆ²»ÄÜÎª¿Õ"})).into_response();
+        return Json(serde_json::json!({"status":"error", "message":"åç§°ã€åœ°å€å’Œä»¤ç‰Œä¸èƒ½ä¸ºç©º"})).into_response();
     }
     let port = if req.port == 0 { default_panel_port() } else { req.port };
     if data.remote_nodes.iter().any(|n| n.host == host && n.port == port) {
-        return Json(serde_json::json!({"status":"error", "message":"½ÚµãÒÑ´æÔÚ"})).into_response();
+        return Json(serde_json::json!({"status":"error", "message":"èŠ‚ç‚¹å·²å­˜åœ¨"})).into_response();
     }
     let node = RemoteNode {
         id: uuid::Uuid::new_v4().to_string(),
@@ -1353,7 +1353,7 @@ async fn update_node(cookies: Cookies, State(state): State<Arc<AppState>>, Path(
     let host = req.host.trim().to_string();
     let token = req.api_token.trim().to_string();
     if name.is_empty() || host.is_empty() || token.is_empty() {
-        return Json(serde_json::json!({"status":"error", "message":"Ãû³Æ¡¢µØÖ·ºÍÁîÅÆ²»ÄÜÎª¿Õ"})).into_response();
+        return Json(serde_json::json!({"status":"error", "message":"åç§°ã€åœ°å€å’Œä»¤ç‰Œä¸èƒ½ä¸ºç©º"})).into_response();
     }
     let port = if req.port == 0 { default_panel_port() } else { req.port };
     if let Some(node) = data.remote_nodes.iter_mut().find(|n| n.id == id) {
@@ -1365,7 +1365,7 @@ async fn update_node(cookies: Cookies, State(state): State<Arc<AppState>>, Path(
         save_json(&data);
         return Json(serde_json::json!({"status":"ok"})).into_response();
     }
-    Json(serde_json::json!({"status":"error", "message":"½Úµã²»´æÔÚ"})).into_response()
+    Json(serde_json::json!({"status":"error", "message":"èŠ‚ç‚¹ä¸å­˜åœ¨"})).into_response()
 }
 
 async fn delete_node(cookies: Cookies, State(state): State<Arc<AppState>>, Path(id): Path<String>) -> Response {
@@ -1385,13 +1385,13 @@ async fn call_remote_api(
     body: Option<serde_json::Value>,
 ) -> Result<serde_json::Value, String> {
     if !node.enabled {
-        return Err("½ÚµãÒÑ½ûÓÃ".to_string());
+        return Err("èŠ‚ç‚¹å·²ç¦ç”¨".to_string());
     }
     if node.host.trim().is_empty() {
-        return Err("½ÚµãµØÖ·Îª¿Õ".to_string());
+        return Err("èŠ‚ç‚¹åœ°å€ä¸ºç©º".to_string());
     }
     if node.api_token.trim().is_empty() {
-        return Err("½ÚµãÁîÅÆÎª¿Õ".to_string());
+        return Err("èŠ‚ç‚¹ä»¤ç‰Œä¸ºç©º".to_string());
     }
     let base = if node.host.starts_with("http://") || node.host.starts_with("https://") {
         node.host.clone()
@@ -1420,7 +1420,7 @@ async fn call_remote_api(
     let status = resp.status();
     let text = resp.text().await.map_err(|e| e.to_string())?;
     if !status.is_success() {
-        return Err(format!("Ô¶³ÌÏìÓ¦Òì³£: {}", text));
+        return Err(format!("è¿œç¨‹å“åº”å¼‚å¸¸: {}", text));
     }
     serde_json::from_str(&text).map_err(|e| e.to_string())
 }
@@ -1431,7 +1431,7 @@ async fn get_remote_rules(cookies: Cookies, State(state): State<Arc<AppState>>, 
         if !check_auth(&cookies, &data) { return StatusCode::UNAUTHORIZED.into_response(); }
         match data.remote_nodes.iter().find(|n| n.id == id) {
             Some(n) => n.clone(),
-            None => return Json(serde_json::json!({"status":"error","message":"½Úµã²»´æÔÚ"})).into_response(),
+            None => return Json(serde_json::json!({"status":"error","message":"èŠ‚ç‚¹ä¸å­˜åœ¨"})).into_response(),
         }
     };
     match call_remote_api(&node, "GET", "/api/rules", None).await {
@@ -1446,7 +1446,7 @@ async fn add_remote_rule(cookies: Cookies, State(state): State<Arc<AppState>>, P
         if !check_auth(&cookies, &data) { return StatusCode::UNAUTHORIZED.into_response(); }
         match data.remote_nodes.iter().find(|n| n.id == id) {
             Some(n) => n.clone(),
-            None => return Json(serde_json::json!({"status":"error","message":"½Úµã²»´æÔÚ"})).into_response(),
+            None => return Json(serde_json::json!({"status":"error","message":"èŠ‚ç‚¹ä¸å­˜åœ¨"})).into_response(),
         }
     };
     match call_remote_api(&node, "POST", "/api/rules", Some(req)).await {
@@ -1461,7 +1461,7 @@ async fn update_remote_rule(cookies: Cookies, State(state): State<Arc<AppState>>
         if !check_auth(&cookies, &data) { return StatusCode::UNAUTHORIZED.into_response(); }
         match data.remote_nodes.iter().find(|n| n.id == id) {
             Some(n) => n.clone(),
-            None => return Json(serde_json::json!({"status":"error","message":"½Úµã²»´æÔÚ"})).into_response(),
+            None => return Json(serde_json::json!({"status":"error","message":"èŠ‚ç‚¹ä¸å­˜åœ¨"})).into_response(),
         }
     };
     let path = format!("/api/rules/{}", rule_id);
@@ -1477,7 +1477,7 @@ async fn delete_remote_rule(cookies: Cookies, State(state): State<Arc<AppState>>
         if !check_auth(&cookies, &data) { return StatusCode::UNAUTHORIZED.into_response(); }
         match data.remote_nodes.iter().find(|n| n.id == id) {
             Some(n) => n.clone(),
-            None => return Json(serde_json::json!({"status":"error","message":"½Úµã²»´æÔÚ"})).into_response(),
+            None => return Json(serde_json::json!({"status":"error","message":"èŠ‚ç‚¹ä¸å­˜åœ¨"})).into_response(),
         }
     };
     let path = format!("/api/rules/{}", rule_id);
@@ -1493,7 +1493,7 @@ async fn toggle_remote_rule(cookies: Cookies, State(state): State<Arc<AppState>>
         if !check_auth(&cookies, &data) { return StatusCode::UNAUTHORIZED.into_response(); }
         match data.remote_nodes.iter().find(|n| n.id == id) {
             Some(n) => n.clone(),
-            None => return Json(serde_json::json!({"status":"error","message":"½Úµã²»´æÔÚ"})).into_response(),
+            None => return Json(serde_json::json!({"status":"error","message":"èŠ‚ç‚¹ä¸å­˜åœ¨"})).into_response(),
         }
     };
     let path = format!("/api/rules/{}/toggle", rule_id);
@@ -1522,7 +1522,7 @@ async fn update_bg(cookies: Cookies, State(state): State<Arc<AppState>>, Json(re
 }
 
 const LOGIN_HTML: &str = r#"
-<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"><title>Realm Login</title><style>*{margin:0;padding:0;box-sizing:border-box}body{height:100vh;width:100vw;overflow:hidden;display:flex;justify-content:center;align-items:center;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:url('{{BG_PC}}') no-repeat center center/cover;color:#374151}@media(max-width:768px){body{background-image:url('{{BG_MOBILE}}')}}.overlay{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.05)}.box{position:relative;z-index:2;background:rgba(255,255,255,0.3);backdrop-filter:blur(25px);-webkit-backdrop-filter:blur(25px);padding:2.5rem;border-radius:24px;border:1px solid rgba(255,255,255,0.4);box-shadow:0 8px 32px rgba(0,0,0,0.05);width:90%;max-width:380px;text-align:center}h2{margin-bottom:2rem;color:#374151;font-weight:600;letter-spacing:1px}input{width:100%;padding:14px;margin-bottom:1.2rem;border:1px solid rgba(255,255,255,0.5);border-radius:12px;outline:none;background:rgba(255,255,255,0.5);transition:0.3s;color:#374151}input:focus{background:rgba(255,255,255,0.9);border-color:#3b82f6}button{width:100%;padding:14px;background:rgba(59,130,246,0.85);color:white;border:none;border-radius:12px;cursor:pointer;font-weight:600;font-size:1rem;transition:0.3s;backdrop-filter:blur(5px)}button:hover{background:#2563eb;transform:translateY(-1px)}</style></head><body><div class="overlay"></div><div class="box"><h2>Realm Panel</h2><form onsubmit="doLogin(event)"><input type="text" id="u" placeholder="Username" required><input type="password" id="p" placeholder="Password" required><button type="submit" id="btn">µÇ Â¼</button></form></div><script>async function doLogin(e){e.preventDefault();const b=document.getElementById('btn');b.innerText='µÇÂ¼ÖĞ...';b.disabled=true;const res=await fetch('/login',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:`username=${encodeURIComponent(document.getElementById('u').value)}&password=${encodeURIComponent(document.getElementById('p').value)}`});if(res.redirected){location.href=res.url}else if(res.ok){location.href='/'}else{alert('ÓÃ»§Ãû»òÃÜÂë´íÎó');b.innerText='µÇ Â¼';b.disabled=false}}</script></body></html>
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"><title>Realm Login</title><style>*{margin:0;padding:0;box-sizing:border-box}body{height:100vh;width:100vw;overflow:hidden;display:flex;justify-content:center;align-items:center;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:url('{{BG_PC}}') no-repeat center center/cover;color:#374151}@media(max-width:768px){body{background-image:url('{{BG_MOBILE}}')}}.overlay{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.05)}.box{position:relative;z-index:2;background:rgba(255,255,255,0.3);backdrop-filter:blur(25px);-webkit-backdrop-filter:blur(25px);padding:2.5rem;border-radius:24px;border:1px solid rgba(255,255,255,0.4);box-shadow:0 8px 32px rgba(0,0,0,0.05);width:90%;max-width:380px;text-align:center}h2{margin-bottom:2rem;color:#374151;font-weight:600;letter-spacing:1px}input{width:100%;padding:14px;margin-bottom:1.2rem;border:1px solid rgba(255,255,255,0.5);border-radius:12px;outline:none;background:rgba(255,255,255,0.5);transition:0.3s;color:#374151}input:focus{background:rgba(255,255,255,0.9);border-color:#3b82f6}button{width:100%;padding:14px;background:rgba(59,130,246,0.85);color:white;border:none;border-radius:12px;cursor:pointer;font-weight:600;font-size:1rem;transition:0.3s;backdrop-filter:blur(5px)}button:hover{background:#2563eb;transform:translateY(-1px)}</style></head><body><div class="overlay"></div><div class="box"><h2>Realm Panel</h2><form onsubmit="doLogin(event)"><input type="text" id="u" placeholder="Username" required><input type="password" id="p" placeholder="Password" required><button type="submit" id="btn">ç™» å½•</button></form></div><script>async function doLogin(e){e.preventDefault();const b=document.getElementById('btn');b.innerText='ç™»å½•ä¸­...';b.disabled=true;const res=await fetch('/login',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:`username=${encodeURIComponent(document.getElementById('u').value)}&password=${encodeURIComponent(document.getElementById('p').value)}`});if(res.redirected){location.href=res.url}else if(res.ok){location.href='/'}else{alert('ç”¨æˆ·åæˆ–å¯†ç é”™è¯¯');b.innerText='ç™» å½•';b.disabled=false}}</script></body></html>
 "#;
 
 const DASHBOARD_HTML: &str = r#"
@@ -1540,41 +1540,41 @@ td:last-child{border-right:1px solid rgba(255,255,255,0.3);border-top-right-radi
 .info-row{display:flex;justify-content:space-between;margin-bottom:8px;font-size:0.9rem}.info-val{font-weight:600}
 .progress-bar{width:100%;height:10px;background:rgba(0,0,0,0.1);border-radius:5px;overflow:hidden;margin-top:5px}.progress-fill{height:100%;background:var(--primary);width:0%}
 .expire-warning{color:var(--danger);font-size:0.8rem;margin-top:2px}
-@media(max-width:768px){.grid-input{grid-template-columns:1fr; gap:10px}.navbar{padding:0.8rem 1rem}.nav-text{display:none}thead{display:none}tbody tr{display:flex;flex-direction:column;border-radius:18px!important;margin-bottom:12px;padding:15px;border:1px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.4)}td{padding:6px 0;display:flex;justify-content:space-between;border-radius:0!important;align-items:center;border:none;background:transparent}td::before{content:attr(data-label);color:#9ca3af;font-size:0.85rem}td[data-label="²Ù×÷"]{justify-content:flex-end;gap:10px;margin-top:8px;padding-top:10px;border-top:1px solid rgba(0,0,0,0.05)}td[data-label="²Ù×÷"] .btn{flex:none;width:auto;padding:6px 14px;border-radius:8px;font-size:0.85rem}td[data-label="²Ù×÷"] .btn-gray{background:transparent;border:1px solid rgba(0,0,0,0.15);color:#555}td[data-label="²Ù×÷"] .btn-primary{background:var(--primary);color:white}td[data-label="²Ù×÷"] .btn-danger{background:rgba(239,68,68,0.1);color:var(--danger);border:1px solid rgba(239,68,68,0.2)}.tools-group{width:100%;margin-top:5px}.tools-group .btn{flex:1;justify-content:center;padding:10px 0;font-size:0.85rem}}</style></head><body><div class="navbar"><div class="brand"><i class="fas fa-layer-group"></i> <span class="nav-text">Realm ×ª·¢Ãæ°å</span></div><div class="nav-actions" style="display:flex;gap:15px"><button class="btn btn-gray" onclick="openSettings()"><i class="fas fa-sliders-h"></i> <span class="nav-text">Ãæ°åÉèÖÃ</span></button><button class="btn btn-danger" onclick="doLogout()"><i class="fas fa-power-off"></i></button></div></div><div class="container"><div class="card card-fixed"><div class="grid-input"><input id="n" placeholder="±¸×¢Ãû³Æ"><input id="l" placeholder="¼àÌı¶Ë¿Ú (Èç 10000)"><input id="r" placeholder="Ä¿±ê (Àı 1.2.3.4:443)"><button class="btn btn-primary" onclick="openAddModal()"><i class="fas fa-plus"></i> Ìí¼Ó</button><div class="tools-group"><button class="btn btn-primary" onclick="openBatch()" style="background:#8b5cf6"><i class="fas fa-paste"></i> ÅúÁ¿</button><button class="btn btn-danger" onclick="delAll()" style="background:#ef4444"><i class="fas fa-trash"></i> È«É¾</button><button class="btn btn-primary" onclick="downloadBackup()" style="background:#059669"><i class="fas fa-download"></i> µ¼³ö</button><button class="btn btn-danger" onclick="openRestore()" style="background:#d97706"><i class="fas fa-upload"></i> µ¼Èë</button></div></div></div><div class="card card-scroll"><div style="padding:1.2rem 1.5rem;font-weight:700;font-size:1rem;opacity:0.8">×ª·¢¹æÔò¹ÜÀí</div><div class="table-wrapper"><table id="ruleTable"><thead><tr><th>×´Ì¬</th><th>±¸×¢</th><th>¼àÌı</th><th>Ä¿±ê</th><th>Á÷Á¿ (In/Out)</th><th style="width:180px;text-align:right;padding-right:20px">²Ù×÷</th></tr></thead><tbody id="list"></tbody></table><div id="emptyView" style="display:none;text-align:center;padding:50px;color:#9ca3af"><i class="fas fa-inbox" style="font-size:2rem;display:block;margin-bottom:10px"></i>ÔİÎŞ¹æÔò</div></div></div></div>
-<div id="ruleModal" class="modal"><div class="modal-box"><h3 id="modalTitle">Ìí¼Ó¹æÔò</h3><input type="hidden" id="edit_id"><label>±¸×¢</label><input id="mod_n"><label>¼àÌı¶Ë¿Ú</label><input id="mod_l"><label>Ä¿±êµØÖ·</label><input id="mod_r"><label>µ½ÆÚÊ±¼ä (Áô¿Õ²»ÏŞÖÆ)</label><input type="datetime-local" id="mod_e"><label>Á÷Á¿ÏŞÖÆ (Áô¿Õ»ò0²»ÏŞÖÆ)</label><div style="display:flex;gap:10px"><input id="mod_t_val" type="number" placeholder="ÊıÖµ" style="flex:1"><select id="mod_t_unit" style="padding:10px;border-radius:10px;border:1px solid rgba(0,0,0,0.05);background:rgba(255,255,255,0.5)"><option value="MB">MB</option><option value="GB">GB</option></select></div><label>´ø¿íÏŞËÙ</label><div style="display:flex;gap:10px;align-items:center"><input id="mod_bw_en" type="checkbox" style="width:auto"><input id="mod_bw_rate" placeholder="Èç 100Mbps" style="flex:1"></div><label>¼Æ·ÑÄ£Ê½</label><select id="mod_billing" style="padding:10px;border-radius:10px;border:1px solid rgba(0,0,0,0.05);background:rgba(255,255,255,0.5)"><option value="single">µ¥Ïò</option><option value="double">Ë«Ïò</option></select><label>ÔÂ¶ÈÖØÖÃÈÕ (0=²»ÖØÖÃ)</label><input id="mod_reset_day" type="number" min="0" max="31"><div style="margin-top:25px;display:flex;justify-content:flex-end;gap:12px"><button class="btn btn-gray" onclick="closeModal()">È¡Ïû</button><button class="btn btn-primary" onclick="saveRule()">±£´æ</button></div></div></div>
-<div id="viewModal" class="modal"><div class="modal-box"><h3 style="margin-bottom:20px;border-bottom:1px solid #eee;padding-bottom:10px">¹æÔòÏêÇé</h3><div class="info-row"><span>±¸×¢</span><span class="info-val" id="view_n"></span></div><div class="info-row"><span>¼àÌı</span><span class="info-val" id="view_l"></span></div><div class="info-row"><span>Ä¿±ê</span><span class="info-val" id="view_r"></span></div><div style="margin:15px 0;border-top:1px dashed #ddd;padding-top:10px"></div><div id="view_expire_sec"><div class="info-row"><span>µ½ÆÚÊ±¼ä</span><span class="info-val" id="view_e_date"></span></div><div style="text-align:right;font-size:0.8rem;color:#666" id="view_e_remain"></div></div><div style="margin:15px 0;border-top:1px dashed #ddd;padding-top:10px"></div><div id="view_traffic_sec"><div class="info-row"><span>Á÷Á¿Ê¹ÓÃ (Max)</span><span class="info-val"><span id="view_t_used"></span> / <span id="view_t_limit"></span></span></div><div class="progress-bar"><div class="progress-fill" id="view_t_bar"></div></div><div style="text-align:right;margin-top:5px"><button class="btn btn-gray" style="font-size:0.7rem;padding:4px 8px" onclick="resetTraffic()">ÖØÖÃÁ÷Á¿</button></div></div><div style="margin:15px 0;border-top:1px dashed #ddd;padding-top:10px"></div><div id="view_bw_sec"><div class="info-row"><span>´ø¿íÏŞËÙ</span><span class="info-val" id="view_bw"></span></div><div class="info-row"><span>¼Æ·ÑÄ£Ê½</span><span class="info-val" id="view_bill"></span></div><div class="info-row"><span>ÔÂ¶ÈÖØÖÃ</span><span class="info-val" id="view_reset"></span></div></div><div style="margin-top:25px;display:flex;justify-content:flex-end;"><button class="btn btn-primary" onclick="closeModal()">¹Ø±Õ</button></div></div></div>
-<div id="setModal" class="modal"><div class="modal-box" style="max-width:720px"><div class="tab-header"><div class="tab-btn active" onclick="switchTab(0)">¹ÜÀíÕË»§</div><div class="tab-btn" onclick="switchTab(1)">¸öĞÔ±³¾°</div><div class="tab-btn" onclick="switchTab(2)">Í¨ÖªÉèÖÃ</div><div class="tab-btn" onclick="switchTab(3)">Ô¶³Ì½Úµã</div></div><div class="tab-content active" id="tab0"><label>ÓÃ»§Ãû</label><input id="set_u" value="{{USER}}"><label>ÖØÖÃÃÜÂë (Áô¿Õ±£³Ö²»±ä)</label><input id="set_p" type="password"><div style="margin-top:25px;display:flex;justify-content:flex-end;gap:12px"><button class="btn btn-gray" onclick="closeModal()">È¡Ïû</button><button class="btn btn-primary" onclick="saveAccount()">È·ÈÏĞŞ¸Ä</button></div></div><div class="tab-content" id="tab1"><label>PC¶Ë±ÚÖ½ URL</label><input id="bg_pc" value="{{BG_PC}}"><label>ÊÖ»ú¶Ë±ÚÖ½ URL</label><input id="bg_mob" value="{{BG_MOBILE}}"><div style="margin-top:25px;display:flex;justify-content:flex-end;gap:12px"><button class="btn btn-gray" onclick="closeModal()">È¡Ïû</button><button class="btn btn-primary" onclick="saveBg()">Ó¦ÓÃ±³¾°</button></div></div><div class="tab-content" id="tab2"><label>·şÎñÆ÷Ãû³Æ</label><input id="nt_server"><label><input id="nt_tg_en" type="checkbox" style="width:auto;margin-right:6px">Telegram ÆôÓÃ</label><label>Bot Token</label><input id="nt_tg_token"><label>Chat ID</label><input id="nt_tg_chat"><label><input id="nt_wecom_en" type="checkbox" style="width:auto;margin-right:6px">ÆóÒµÎ¢ĞÅ ÆôÓÃ</label><label>Webhook URL</label><input id="nt_wecom_url"><div style="margin-top:25px;display:flex;justify-content:flex-end;gap:12px"><button class="btn btn-gray" onclick="testNotify()">·¢ËÍ²âÊÔ</button><button class="btn btn-primary" onclick="saveNotify()">±£´æÅäÖÃ</button></div></div><div class="tab-content" id="tab3"><label>±¾½Úµã API ÁîÅÆ</label><div style="display:flex;gap:10px;align-items:center"><input id="local_token" readonly><button class="btn btn-gray" onclick="copyToken()">¸´ÖÆ</button><button class="btn btn-primary" onclick="regenerateToken()">ÖØĞÂÉú³É</button></div><div style="margin-top:18px;font-weight:600">Ô¶³Ì½ÚµãÁĞ±í</div><button class="btn btn-primary" style="margin-top:10px" onclick="openAddNode()"><i class="fas fa-plus"></i> Ìí¼Ó½Úµã</button><div style="margin-top:10px;max-height:260px;overflow:auto"><table id="nodeTable"><thead><tr><th>Ãû³Æ</th><th>µØÖ·</th><th>×´Ì¬</th><th style="text-align:right">²Ù×÷</th></tr></thead><tbody id="nodeList"></tbody></table></div></div></div></div><div id="batchModal" class="modal"><div class="modal-box" style="max-width:600px"><h3>ÅúÁ¿Ìí¼Ó¹æÔò</h3><p style="color:#666;font-size:0.85rem;margin-bottom:10px">¸ñÊ½£º±¸×¢,¼àÌı¶Ë¿Ú,Ä¿±êµØÖ·<br>Ò»ĞĞÒ»Ìõ£¬ÀıÈç£º<br>ÈÕ±¾ÂäµØ,10001,1.1.1.1:443</p><textarea id="batch_input" rows="10" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:10px;font-family:monospace" placeholder="±¸×¢,¼àÌı¶Ë¿Ú,Ä¿±êµØÖ·"></textarea><div style="margin-top:25px;display:flex;justify-content:flex-end;gap:12px"><button class="btn btn-gray" onclick="closeModal()">È¡Ïû</button><button class="btn btn-primary" onclick="saveBatch()">¿ªÊ¼µ¼Èë</button></div></div></div>
-<div id="restoreModal" class="modal"><div class="modal-box"><h3>»Ö¸´±¸·İ</h3><p style="color:#ef4444;font-size:0.9rem;margin-bottom:15px">¾¯¸æ£ºµ¼Èë²Ù×÷½«¸²¸Çµ±Ç°ËùÓĞ¹æÔò£¡</p><textarea id="restore_input" rows="8" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:10px;font-family:monospace;font-size:0.8rem"></textarea><div style="margin-top:25px;display:flex;justify-content:flex-end;gap:12px"><button class="btn btn-gray" onclick="closeModal()">È¡Ïû</button><button class="btn btn-danger" onclick="doRestore()">È·ÈÏ¸²¸Ç</button></div></div></div>
-<div id="nodeModal" class="modal"><div class="modal-box" style="max-width:520px"><h3 id="nodeModalTitle">Ìí¼Ó½Úµã</h3><input type="hidden" id="node_id"><label>½ÚµãÃû³Æ</label><input id="node_name"><label>½ÚµãµØÖ· (IP/ÓòÃû)</label><input id="node_host"><label>Ãæ°å¶Ë¿Ú</label><input id="node_port" type="number" min="1" max="65535" value="4794"><label>API ÁîÅÆ</label><input id="node_token"><label><input id="node_enabled" type="checkbox" style="width:auto;margin-right:6px" checked>ÆôÓÃ½Úµã</label><div style="margin-top:25px;display:flex;justify-content:flex-end;gap:12px"><button class="btn btn-gray" onclick="closeModal()">È¡Ïû</button><button class="btn btn-primary" onclick="saveNode()">±£´æ</button></div></div></div><div id="nodeRulesModal" class="modal"><div class="modal-box" style="max-width:900px"><h3 id="nodeRulesTitle">Ô¶³Ì¹æÔò</h3><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div id="nodeRulesHint" style="font-size:0.85rem;color:#6b7280"></div><button class="btn btn-primary" onclick="openRemoteAdd()"><i class="fas fa-plus"></i> Ìí¼Ó¹æÔò</button></div><div style="max-height:320px;overflow:auto"><table id="remoteRuleTable"><thead><tr><th>×´Ì¬</th><th>±¸×¢</th><th>¼àÌı</th><th>Ä¿±ê</th><th style="text-align:right">²Ù×÷</th></tr></thead><tbody id="remoteRuleList"></tbody></table><div id="remoteEmpty" style="display:none;text-align:center;padding:30px;color:#9ca3af">ÔİÎŞ¹æÔò</div></div><div style="margin-top:20px;display:flex;justify-content:flex-end"><button class="btn btn-gray" onclick="closeModal()">¹Ø±Õ</button></div></div></div><div id="remoteRuleModal" class="modal"><div class="modal-box"><h3 id="remoteRuleTitle">Ìí¼ÓÔ¶³Ì¹æÔò</h3><input type="hidden" id="remote_rule_id"><label>±¸×¢</label><input id="remote_rule_name"><label>¼àÌı¶Ë¿Ú</label><input id="remote_rule_listen"><label>Ä¿±êµØÖ·</label><input id="remote_rule_remote"><div style="margin-top:25px;display:flex;justify-content:flex-end;gap:12px"><button class="btn btn-gray" onclick="closeModal()">È¡Ïû</button><button class="btn btn-primary" onclick="saveRemoteRule()">±£´æ</button></div></div></div><script>
+@media(max-width:768px){.grid-input{grid-template-columns:1fr; gap:10px}.navbar{padding:0.8rem 1rem}.nav-text{display:none}thead{display:none}tbody tr{display:flex;flex-direction:column;border-radius:18px!important;margin-bottom:12px;padding:15px;border:1px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.4)}td{padding:6px 0;display:flex;justify-content:space-between;border-radius:0!important;align-items:center;border:none;background:transparent}td::before{content:attr(data-label);color:#9ca3af;font-size:0.85rem}td[data-label="æ“ä½œ"]{justify-content:flex-end;gap:10px;margin-top:8px;padding-top:10px;border-top:1px solid rgba(0,0,0,0.05)}td[data-label="æ“ä½œ"] .btn{flex:none;width:auto;padding:6px 14px;border-radius:8px;font-size:0.85rem}td[data-label="æ“ä½œ"] .btn-gray{background:transparent;border:1px solid rgba(0,0,0,0.15);color:#555}td[data-label="æ“ä½œ"] .btn-primary{background:var(--primary);color:white}td[data-label="æ“ä½œ"] .btn-danger{background:rgba(239,68,68,0.1);color:var(--danger);border:1px solid rgba(239,68,68,0.2)}.tools-group{width:100%;margin-top:5px}.tools-group .btn{flex:1;justify-content:center;padding:10px 0;font-size:0.85rem}}</style></head><body><div class="navbar"><div class="brand"><i class="fas fa-layer-group"></i> <span class="nav-text">Realm è½¬å‘é¢æ¿</span></div><div class="nav-actions" style="display:flex;gap:15px"><button class="btn btn-gray" onclick="openSettings()"><i class="fas fa-sliders-h"></i> <span class="nav-text">é¢æ¿è®¾ç½®</span></button><button class="btn btn-danger" onclick="doLogout()"><i class="fas fa-power-off"></i></button></div></div><div class="container"><div class="card card-fixed"><div class="grid-input"><input id="n" placeholder="å¤‡æ³¨åç§°"><input id="l" placeholder="ç›‘å¬ç«¯å£ (å¦‚ 10000)"><input id="r" placeholder="ç›®æ ‡ (ä¾‹ 1.2.3.4:443)"><button class="btn btn-primary" onclick="openAddModal()"><i class="fas fa-plus"></i> æ·»åŠ </button><div class="tools-group"><button class="btn btn-primary" onclick="openBatch()" style="background:#8b5cf6"><i class="fas fa-paste"></i> æ‰¹é‡</button><button class="btn btn-danger" onclick="delAll()" style="background:#ef4444"><i class="fas fa-trash"></i> å…¨åˆ </button><button class="btn btn-primary" onclick="downloadBackup()" style="background:#059669"><i class="fas fa-download"></i> å¯¼å‡º</button><button class="btn btn-danger" onclick="openRestore()" style="background:#d97706"><i class="fas fa-upload"></i> å¯¼å…¥</button></div></div></div><div class="card card-scroll"><div style="padding:1.2rem 1.5rem;font-weight:700;font-size:1rem;opacity:0.8">è½¬å‘è§„åˆ™ç®¡ç†</div><div class="table-wrapper"><table id="ruleTable"><thead><tr><th>çŠ¶æ€</th><th>å¤‡æ³¨</th><th>ç›‘å¬</th><th>ç›®æ ‡</th><th>æµé‡ (In/Out)</th><th style="width:180px;text-align:right;padding-right:20px">æ“ä½œ</th></tr></thead><tbody id="list"></tbody></table><div id="emptyView" style="display:none;text-align:center;padding:50px;color:#9ca3af"><i class="fas fa-inbox" style="font-size:2rem;display:block;margin-bottom:10px"></i>æš‚æ— è§„åˆ™</div></div></div></div>
+<div id="ruleModal" class="modal"><div class="modal-box"><h3 id="modalTitle">æ·»åŠ è§„åˆ™</h3><input type="hidden" id="edit_id"><label>å¤‡æ³¨</label><input id="mod_n"><label>ç›‘å¬ç«¯å£</label><input id="mod_l"><label>ç›®æ ‡åœ°å€</label><input id="mod_r"><label>åˆ°æœŸæ—¶é—´ (ç•™ç©ºä¸é™åˆ¶)</label><input type="datetime-local" id="mod_e"><label>æµé‡é™åˆ¶ (ç•™ç©ºæˆ–0ä¸é™åˆ¶)</label><div style="display:flex;gap:10px"><input id="mod_t_val" type="number" placeholder="æ•°å€¼" style="flex:1"><select id="mod_t_unit" style="padding:10px;border-radius:10px;border:1px solid rgba(0,0,0,0.05);background:rgba(255,255,255,0.5)"><option value="MB">MB</option><option value="GB">GB</option></select></div><label>å¸¦å®½é™é€Ÿ</label><div style="display:flex;gap:10px;align-items:center"><input id="mod_bw_en" type="checkbox" style="width:auto"><input id="mod_bw_rate" placeholder="å¦‚ 100Mbps" style="flex:1"></div><label>è®¡è´¹æ¨¡å¼</label><select id="mod_billing" style="padding:10px;border-radius:10px;border:1px solid rgba(0,0,0,0.05);background:rgba(255,255,255,0.5)"><option value="single">å•å‘</option><option value="double">åŒå‘</option></select><label>æœˆåº¦é‡ç½®æ—¥ (0=ä¸é‡ç½®)</label><input id="mod_reset_day" type="number" min="0" max="31"><div style="margin-top:25px;display:flex;justify-content:flex-end;gap:12px"><button class="btn btn-gray" onclick="closeModal()">å–æ¶ˆ</button><button class="btn btn-primary" onclick="saveRule()">ä¿å­˜</button></div></div></div>
+<div id="viewModal" class="modal"><div class="modal-box"><h3 style="margin-bottom:20px;border-bottom:1px solid #eee;padding-bottom:10px">è§„åˆ™è¯¦æƒ…</h3><div class="info-row"><span>å¤‡æ³¨</span><span class="info-val" id="view_n"></span></div><div class="info-row"><span>ç›‘å¬</span><span class="info-val" id="view_l"></span></div><div class="info-row"><span>ç›®æ ‡</span><span class="info-val" id="view_r"></span></div><div style="margin:15px 0;border-top:1px dashed #ddd;padding-top:10px"></div><div id="view_expire_sec"><div class="info-row"><span>åˆ°æœŸæ—¶é—´</span><span class="info-val" id="view_e_date"></span></div><div style="text-align:right;font-size:0.8rem;color:#666" id="view_e_remain"></div></div><div style="margin:15px 0;border-top:1px dashed #ddd;padding-top:10px"></div><div id="view_traffic_sec"><div class="info-row"><span>æµé‡ä½¿ç”¨ (Max)</span><span class="info-val"><span id="view_t_used"></span> / <span id="view_t_limit"></span></span></div><div class="progress-bar"><div class="progress-fill" id="view_t_bar"></div></div><div style="text-align:right;margin-top:5px"><button class="btn btn-gray" style="font-size:0.7rem;padding:4px 8px" onclick="resetTraffic()">é‡ç½®æµé‡</button></div></div><div style="margin:15px 0;border-top:1px dashed #ddd;padding-top:10px"></div><div id="view_bw_sec"><div class="info-row"><span>å¸¦å®½é™é€Ÿ</span><span class="info-val" id="view_bw"></span></div><div class="info-row"><span>è®¡è´¹æ¨¡å¼</span><span class="info-val" id="view_bill"></span></div><div class="info-row"><span>æœˆåº¦é‡ç½®</span><span class="info-val" id="view_reset"></span></div></div><div style="margin-top:25px;display:flex;justify-content:flex-end;"><button class="btn btn-primary" onclick="closeModal()">å…³é—­</button></div></div></div>
+<div id="setModal" class="modal"><div class="modal-box" style="max-width:720px"><div class="tab-header"><div class="tab-btn active" onclick="switchTab(0)">ç®¡ç†è´¦æˆ·</div><div class="tab-btn" onclick="switchTab(1)">ä¸ªæ€§èƒŒæ™¯</div><div class="tab-btn" onclick="switchTab(2)">é€šçŸ¥è®¾ç½®</div><div class="tab-btn" onclick="switchTab(3)">è¿œç¨‹èŠ‚ç‚¹</div></div><div class="tab-content active" id="tab0"><label>ç”¨æˆ·å</label><input id="set_u" value="{{USER}}"><label>é‡ç½®å¯†ç  (ç•™ç©ºä¿æŒä¸å˜)</label><input id="set_p" type="password"><div style="margin-top:25px;display:flex;justify-content:flex-end;gap:12px"><button class="btn btn-gray" onclick="closeModal()">å–æ¶ˆ</button><button class="btn btn-primary" onclick="saveAccount()">ç¡®è®¤ä¿®æ”¹</button></div></div><div class="tab-content" id="tab1"><label>PCç«¯å£çº¸ URL</label><input id="bg_pc" value="{{BG_PC}}"><label>æ‰‹æœºç«¯å£çº¸ URL</label><input id="bg_mob" value="{{BG_MOBILE}}"><div style="margin-top:25px;display:flex;justify-content:flex-end;gap:12px"><button class="btn btn-gray" onclick="closeModal()">å–æ¶ˆ</button><button class="btn btn-primary" onclick="saveBg()">åº”ç”¨èƒŒæ™¯</button></div></div><div class="tab-content" id="tab2"><label>æœåŠ¡å™¨åç§°</label><input id="nt_server"><label><input id="nt_tg_en" type="checkbox" style="width:auto;margin-right:6px">Telegram å¯ç”¨</label><label>Bot Token</label><input id="nt_tg_token"><label>Chat ID</label><input id="nt_tg_chat"><label><input id="nt_wecom_en" type="checkbox" style="width:auto;margin-right:6px">ä¼ä¸šå¾®ä¿¡ å¯ç”¨</label><label>Webhook URL</label><input id="nt_wecom_url"><div style="margin-top:25px;display:flex;justify-content:flex-end;gap:12px"><button class="btn btn-gray" onclick="testNotify()">å‘é€æµ‹è¯•</button><button class="btn btn-primary" onclick="saveNotify()">ä¿å­˜é…ç½®</button></div></div><div class="tab-content" id="tab3"><label>æœ¬èŠ‚ç‚¹ API ä»¤ç‰Œ</label><div style="display:flex;gap:10px;align-items:center"><input id="local_token" readonly><button class="btn btn-gray" onclick="copyToken()">å¤åˆ¶</button><button class="btn btn-primary" onclick="regenerateToken()">é‡æ–°ç”Ÿæˆ</button></div><div style="margin-top:18px;font-weight:600">è¿œç¨‹èŠ‚ç‚¹åˆ—è¡¨</div><button class="btn btn-primary" style="margin-top:10px" onclick="openAddNode()"><i class="fas fa-plus"></i> æ·»åŠ èŠ‚ç‚¹</button><div style="margin-top:10px;max-height:260px;overflow:auto"><table id="nodeTable"><thead><tr><th>åç§°</th><th>åœ°å€</th><th>çŠ¶æ€</th><th style="text-align:right">æ“ä½œ</th></tr></thead><tbody id="nodeList"></tbody></table></div></div></div></div><div id="batchModal" class="modal"><div class="modal-box" style="max-width:600px"><h3>æ‰¹é‡æ·»åŠ è§„åˆ™</h3><p style="color:#666;font-size:0.85rem;margin-bottom:10px">æ ¼å¼ï¼šå¤‡æ³¨,ç›‘å¬ç«¯å£,ç›®æ ‡åœ°å€<br>ä¸€è¡Œä¸€æ¡ï¼Œä¾‹å¦‚ï¼š<br>æ—¥æœ¬è½åœ°,10001,1.1.1.1:443</p><textarea id="batch_input" rows="10" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:10px;font-family:monospace" placeholder="å¤‡æ³¨,ç›‘å¬ç«¯å£,ç›®æ ‡åœ°å€"></textarea><div style="margin-top:25px;display:flex;justify-content:flex-end;gap:12px"><button class="btn btn-gray" onclick="closeModal()">å–æ¶ˆ</button><button class="btn btn-primary" onclick="saveBatch()">å¼€å§‹å¯¼å…¥</button></div></div></div>
+<div id="restoreModal" class="modal"><div class="modal-box"><h3>æ¢å¤å¤‡ä»½</h3><p style="color:#ef4444;font-size:0.9rem;margin-bottom:15px">è­¦å‘Šï¼šå¯¼å…¥æ“ä½œå°†è¦†ç›–å½“å‰æ‰€æœ‰è§„åˆ™ï¼</p><textarea id="restore_input" rows="8" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:10px;font-family:monospace;font-size:0.8rem"></textarea><div style="margin-top:25px;display:flex;justify-content:flex-end;gap:12px"><button class="btn btn-gray" onclick="closeModal()">å–æ¶ˆ</button><button class="btn btn-danger" onclick="doRestore()">ç¡®è®¤è¦†ç›–</button></div></div></div>
+<div id="nodeModal" class="modal"><div class="modal-box" style="max-width:520px"><h3 id="nodeModalTitle">æ·»åŠ èŠ‚ç‚¹</h3><input type="hidden" id="node_id"><label>èŠ‚ç‚¹åç§°</label><input id="node_name"><label>èŠ‚ç‚¹åœ°å€ (IP/åŸŸå)</label><input id="node_host"><label>é¢æ¿ç«¯å£</label><input id="node_port" type="number" min="1" max="65535" value="4794"><label>API ä»¤ç‰Œ</label><input id="node_token"><label><input id="node_enabled" type="checkbox" style="width:auto;margin-right:6px" checked>å¯ç”¨èŠ‚ç‚¹</label><div style="margin-top:25px;display:flex;justify-content:flex-end;gap:12px"><button class="btn btn-gray" onclick="closeModal()">å–æ¶ˆ</button><button class="btn btn-primary" onclick="saveNode()">ä¿å­˜</button></div></div></div><div id="nodeRulesModal" class="modal"><div class="modal-box" style="max-width:900px"><h3 id="nodeRulesTitle">è¿œç¨‹è§„åˆ™</h3><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div id="nodeRulesHint" style="font-size:0.85rem;color:#6b7280"></div><button class="btn btn-primary" onclick="openRemoteAdd()"><i class="fas fa-plus"></i> æ·»åŠ è§„åˆ™</button></div><div style="max-height:320px;overflow:auto"><table id="remoteRuleTable"><thead><tr><th>çŠ¶æ€</th><th>å¤‡æ³¨</th><th>ç›‘å¬</th><th>ç›®æ ‡</th><th style="text-align:right">æ“ä½œ</th></tr></thead><tbody id="remoteRuleList"></tbody></table><div id="remoteEmpty" style="display:none;text-align:center;padding:30px;color:#9ca3af">æš‚æ— è§„åˆ™</div></div><div style="margin-top:20px;display:flex;justify-content:flex-end"><button class="btn btn-gray" onclick="closeModal()">å…³é—­</button></div></div></div><div id="remoteRuleModal" class="modal"><div class="modal-box"><h3 id="remoteRuleTitle">æ·»åŠ è¿œç¨‹è§„åˆ™</h3><input type="hidden" id="remote_rule_id"><label>å¤‡æ³¨</label><input id="remote_rule_name"><label>ç›‘å¬ç«¯å£</label><input id="remote_rule_listen"><label>ç›®æ ‡åœ°å€</label><input id="remote_rule_remote"><div style="margin-top:25px;display:flex;justify-content:flex-end;gap:12px"><button class="btn btn-gray" onclick="closeModal()">å–æ¶ˆ</button><button class="btn btn-primary" onclick="saveRemoteRule()">ä¿å­˜</button></div></div></div><script>
 let rules=[];let curId=null;let nodes=[];let curNodeId=null;let remoteRules=[];let curRemoteRuleId=null;
 const $=id=>document.getElementById(id);
 const fmtBytes=b=>{if(b===0)return'0 B';const k=1024,dm=2,sizes=['B','KB','MB','GB','TB'],i=Math.floor(Math.log(b)/Math.log(k));return parseFloat((b/Math.pow(k,i)).toFixed(dm))+' '+sizes[i]};
-const fmtDate=ts=>{if(!ts)return'ÓÀ¾ÃÓĞĞ§';return new Date(ts).toLocaleString()};
+const fmtDate=ts=>{if(!ts)return'æ°¸ä¹…æœ‰æ•ˆ';return new Date(ts).toLocaleString()};
 const getRemain=ts=>{
     if(!ts) return '';
     const now=Date.now();
     const diff=ts-now;
-    if(diff<0) return 'ÒÑ¹ıÆÚ';
+    if(diff<0) return 'å·²è¿‡æœŸ';
     const d = Math.floor(diff / (1000 * 60 * 60 * 24));
     const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    return `Ê£Óà ${d}Ìì ${h}Ğ¡Ê±`;
+    return `å‰©ä½™ ${d}å¤© ${h}å°æ—¶`;
 };
 async function load(){const r=await fetch('/api/rules');if(r.status===401)location.href='/login';const d=await r.json();rules=d.rules;render()}
 function render(){const t=$('list');const ev=$('emptyView');const table=$('ruleTable');t.innerHTML='';if(rules.length===0){ev.style.display='block';table.style.display='none'}else{ev.style.display='none';table.style.display='table';rules.forEach(r=>{const row=document.createElement('tr');if(!r.enabled)row.style.opacity='0.6';
-let statusHtml=`<span class="status-dot ${r.enabled?'bg-green':'bg-gray'}"></span>${r.enabled?'ÔÚÏß':'ÔİÍ£'}`;
+let statusHtml=`<span class="status-dot ${r.enabled?'bg-green':'bg-gray'}"></span>${r.enabled?'åœ¨çº¿':'æš‚åœ'}`;
 if(r.status_msg) statusHtml+=` <span style="font-size:0.8rem;color:#ef4444">(${r.status_msg})</span>`;
 const btns=`<button class="btn btn-gray" onclick="openView('${r.id}')"><i class="fas fa-eye"></i></button><button class="btn btn-gray" onclick="tog('${r.id}')"><i class="fas ${r.enabled?'fa-pause':'fa-play'}"></i></button><button class="btn btn-primary" onclick="openEdit('${r.id}')"><i class="fas fa-edit"></i></button><button class="btn btn-danger" onclick="del('${r.id}')"><i class="fas fa-trash-alt"></i></button>`;
 const isMob=window.innerWidth<768;
 let tfStr = fmtBytes(r.traffic_used);
 if(r.traffic_limit > 0) tfStr += ` / ${fmtBytes(r.traffic_limit)}`;
-let extra=[];if(r.bandwidth_enabled && r.bandwidth_limit) extra.push(`ÏŞËÙ:${r.bandwidth_limit}`);extra.push(`¼Æ·Ñ:${r.billing_mode==='double'?'Ë«Ïò':'µ¥Ïò'}`);if(r.reset_day && r.reset_day>0) extra.push(`ÖØÖÃ:${r.reset_day}ÈÕ`);if(extra.length) tfStr += `<div style="font-size:0.75rem;color:#6b7280;margin-top:4px">${extra.join(' | ')}</div>`;if(isMob){row.innerHTML=`<td data-label="×´Ì¬">${statusHtml}</td><td data-label="±¸×¢"><strong>${r.name}</strong></td><td data-label="¼àÌı">${r.listen}</td><td data-label="Ä¿±ê">${r.remote}</td><td data-label="Á÷Á¿">${tfStr}</td><td data-label="²Ù×÷">${btns.replace(/class="btn/g,'class="btn btn-sm')}</td>`;}
-else{row.innerHTML=`<td data-label="×´Ì¬">${statusHtml}</td><td data-label="±¸×¢"><strong>${r.name}</strong></td><td data-label="¼àÌı">${r.listen}</td><td data-label="Ä¿±ê">${r.remote}</td><td data-label="Á÷Á¿">${tfStr}</td><td data-label="²Ù×÷" style="display:flex;gap:6px;justify-content:flex-end;padding-right:15px">${btns}</td>`;}t.appendChild(row)})}}
-function openAddModal(){curId=null;$('modalTitle').innerText='Ìí¼Ó¹æÔò';['n','l','r','e','t_val'].forEach(x=>$('mod_'+x).value='');$('mod_bw_en').checked=false;$('mod_bw_rate').value='';$('mod_billing').value='single';$('mod_reset_day').value='0';const qn=$('n').value.trim();const ql=$('l').value.trim();const qr=$('r').value.trim();if(qn)$('mod_n').value=qn;if(ql)$('mod_l').value=ql;if(qr)$('mod_r').value=qr;$('ruleModal').style.display='flex'}
-function openEdit(id){curId=id;const r=rules.find(x=>x.id===id);$('modalTitle').innerText='±à¼­¹æÔò';$('mod_n').value=r.name;$('mod_l').value=r.listen.replace('0.0.0.0:','');$('mod_r').value=r.remote;if(r.expire_date){const dt=new Date(r.expire_date);dt.setMinutes(dt.getMinutes()-dt.getTimezoneOffset());$('mod_e').value=dt.toISOString().slice(0,16)}else{$('mod_e').value=''}if(r.traffic_limit){if(r.traffic_limit>=1073741824){$('mod_t_val').value=(r.traffic_limit/1073741824).toFixed(2);$('mod_t_unit').value='GB'}else{$('mod_t_val').value=(r.traffic_limit/1048576).toFixed(2);$('mod_t_unit').value='MB'}}else{$('mod_t_val').value=''}$('mod_bw_en').checked=!!r.bandwidth_enabled;$('mod_bw_rate').value=r.bandwidth_limit||'';$('mod_billing').value=r.billing_mode||'single';$('mod_reset_day').value=r.reset_day||0;$('ruleModal').style.display='flex'}
-function openView(id){curId=id;const r=rules.find(x=>x.id===id);$('view_n').innerText=r.name;$('view_l').innerText=r.listen;$('view_r').innerText=r.remote;if(r.expire_date){$('view_expire_sec').style.display='block';$('view_e_date').innerText=fmtDate(r.expire_date);$('view_e_remain').innerText=getRemain(r.expire_date)}else{$('view_expire_sec').style.display='none'}$('view_traffic_sec').style.display='block';$('view_t_used').innerText=fmtBytes(r.traffic_used);if(r.traffic_limit){$('view_t_limit').innerText=fmtBytes(r.traffic_limit);const pct=Math.min(100,(r.traffic_used/r.traffic_limit)*100);$('view_t_bar').style.width=pct+'%';$('view_t_bar').style.background=pct>90?'#ef4444':'#3b82f6'}else{$('view_t_limit').innerText='ÎŞÏŞÖÆ';$('view_t_bar').style.width='0%'}$('view_bw').innerText=(r.bandwidth_enabled&&r.bandwidth_limit)?r.bandwidth_limit:'Î´ÆôÓÃ';$('view_bill').innerText=r.billing_mode==='double'?'Ë«Ïò':'µ¥Ïò';$('view_reset').innerText=(r.reset_day&&r.reset_day>0)?`Ã¿ÔÂ${r.reset_day}ÈÕ`:'²»ÖØÖÃ';$('viewModal').style.display='flex'}
+let extra=[];if(r.bandwidth_enabled && r.bandwidth_limit) extra.push(`é™é€Ÿ:${r.bandwidth_limit}`);extra.push(`è®¡è´¹:${r.billing_mode==='double'?'åŒå‘':'å•å‘'}`);if(r.reset_day && r.reset_day>0) extra.push(`é‡ç½®:${r.reset_day}æ—¥`);if(extra.length) tfStr += `<div style="font-size:0.75rem;color:#6b7280;margin-top:4px">${extra.join(' | ')}</div>`;if(isMob){row.innerHTML=`<td data-label="çŠ¶æ€">${statusHtml}</td><td data-label="å¤‡æ³¨"><strong>${r.name}</strong></td><td data-label="ç›‘å¬">${r.listen}</td><td data-label="ç›®æ ‡">${r.remote}</td><td data-label="æµé‡">${tfStr}</td><td data-label="æ“ä½œ">${btns.replace(/class="btn/g,'class="btn btn-sm')}</td>`;}
+else{row.innerHTML=`<td data-label="çŠ¶æ€">${statusHtml}</td><td data-label="å¤‡æ³¨"><strong>${r.name}</strong></td><td data-label="ç›‘å¬">${r.listen}</td><td data-label="ç›®æ ‡">${r.remote}</td><td data-label="æµé‡">${tfStr}</td><td data-label="æ“ä½œ" style="display:flex;gap:6px;justify-content:flex-end;padding-right:15px">${btns}</td>`;}t.appendChild(row)})}}
+function openAddModal(){curId=null;$('modalTitle').innerText='æ·»åŠ è§„åˆ™';['n','l','r','e','t_val'].forEach(x=>$('mod_'+x).value='');$('mod_bw_en').checked=false;$('mod_bw_rate').value='';$('mod_billing').value='single';$('mod_reset_day').value='0';const qn=$('n').value.trim();const ql=$('l').value.trim();const qr=$('r').value.trim();if(qn)$('mod_n').value=qn;if(ql)$('mod_l').value=ql;if(qr)$('mod_r').value=qr;$('ruleModal').style.display='flex'}
+function openEdit(id){curId=id;const r=rules.find(x=>x.id===id);$('modalTitle').innerText='ç¼–è¾‘è§„åˆ™';$('mod_n').value=r.name;$('mod_l').value=r.listen.replace('0.0.0.0:','');$('mod_r').value=r.remote;if(r.expire_date){const dt=new Date(r.expire_date);dt.setMinutes(dt.getMinutes()-dt.getTimezoneOffset());$('mod_e').value=dt.toISOString().slice(0,16)}else{$('mod_e').value=''}if(r.traffic_limit){if(r.traffic_limit>=1073741824){$('mod_t_val').value=(r.traffic_limit/1073741824).toFixed(2);$('mod_t_unit').value='GB'}else{$('mod_t_val').value=(r.traffic_limit/1048576).toFixed(2);$('mod_t_unit').value='MB'}}else{$('mod_t_val').value=''}$('mod_bw_en').checked=!!r.bandwidth_enabled;$('mod_bw_rate').value=r.bandwidth_limit||'';$('mod_billing').value=r.billing_mode||'single';$('mod_reset_day').value=r.reset_day||0;$('ruleModal').style.display='flex'}
+function openView(id){curId=id;const r=rules.find(x=>x.id===id);$('view_n').innerText=r.name;$('view_l').innerText=r.listen;$('view_r').innerText=r.remote;if(r.expire_date){$('view_expire_sec').style.display='block';$('view_e_date').innerText=fmtDate(r.expire_date);$('view_e_remain').innerText=getRemain(r.expire_date)}else{$('view_expire_sec').style.display='none'}$('view_traffic_sec').style.display='block';$('view_t_used').innerText=fmtBytes(r.traffic_used);if(r.traffic_limit){$('view_t_limit').innerText=fmtBytes(r.traffic_limit);const pct=Math.min(100,(r.traffic_used/r.traffic_limit)*100);$('view_t_bar').style.width=pct+'%';$('view_t_bar').style.background=pct>90?'#ef4444':'#3b82f6'}else{$('view_t_limit').innerText='æ— é™åˆ¶';$('view_t_bar').style.width='0%'}$('view_bw').innerText=(r.bandwidth_enabled&&r.bandwidth_limit)?r.bandwidth_limit:'æœªå¯ç”¨';$('view_bill').innerText=r.billing_mode==='double'?'åŒå‘':'å•å‘';$('view_reset').innerText=(r.reset_day&&r.reset_day>0)?`æ¯æœˆ${r.reset_day}æ—¥`:'ä¸é‡ç½®';$('viewModal').style.display='flex'}
 async function saveRule(){
     let [n,l,r,e,tv,tu]=['n','l','r','e','t_val','t_unit'].map(x=>$('mod_'+x).value.trim());
-    if(!n||!l||!r) return alert('ÇëÌîĞ´±ØÌîÏî');
+    if(!n||!l||!r) return alert('è¯·å¡«å†™å¿…å¡«é¡¹');
     if(!l.includes(':'))l='0.0.0.0:'+l;
     let ed=0; if(e) ed=new Date(e).getTime();
     let tl=0; if(tv && parseFloat(tv)>0){ tl = parseFloat(tv) * (tu==='GB'?1073741824:1048576); }
@@ -1589,31 +1589,31 @@ async function saveRule(){
     const d=await res.json();
     if(d.status==='error') alert(d.message); else { closeModal(); load(); $('n').value='';$('l').value='';$('r').value='';}
 }
-async function resetTraffic(){if(!curId||!confirm('È·¶¨ÖØÖÃÒÑÓÃÁ÷Á¿Í³¼ÆÂğ£¿'))return;await fetch(`/api/rules/${curId}/reset_traffic`,{method:'POST'});closeModal();load()}
+async function resetTraffic(){if(!curId||!confirm('ç¡®å®šé‡ç½®å·²ç”¨æµé‡ç»Ÿè®¡å—ï¼Ÿ'))return;await fetch(`/api/rules/${curId}/reset_traffic`,{method:'POST'});closeModal();load()}
 async function tog(id){await fetch(`/api/rules/${id}/toggle`,{method:'POST'});load()}
-async function del(id){if(confirm('È·¶¨É¾³ı´Ë¹æÔòÂğ£¿'))await fetch(`/api/rules/${id}`,{method:'DELETE'});load()}
+async function del(id){if(confirm('ç¡®å®šåˆ é™¤æ­¤è§„åˆ™å—ï¼Ÿ'))await fetch(`/api/rules/${id}`,{method:'DELETE'});load()}
 function openSettings(){$('setModal').style.display='flex';switchTab(0)}
 function closeModal(){document.querySelectorAll('.modal').forEach(x=>x.style.display='none')}
 function switchTab(idx){document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',i===idx));document.querySelectorAll('.tab-content').forEach((c,i)=>c.classList.toggle('active',i===idx));if(idx===2)loadNotify();if(idx===3)loadNodes()}
-async function saveAccount(){await fetch('/api/admin/account',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:$('set_u').value,password:$('set_p').value})});alert('ÕË»§ÒÑ¸üĞÂ£¬ÇëÖØĞÂµÇÂ¼');location.reload()}
+async function saveAccount(){await fetch('/api/admin/account',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:$('set_u').value,password:$('set_p').value})});alert('è´¦æˆ·å·²æ›´æ–°ï¼Œè¯·é‡æ–°ç™»å½•');location.reload()}
 async function saveBg(){await fetch('/api/admin/bg',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({bg_pc:$('bg_pc').value,bg_mobile:$('bg_mob').value})});location.reload()}
 async function loadNotify(){const r=await fetch('/api/notifications');if(!r.ok)return;const d=await r.json();$('nt_server').value=d.server_name||'';$('nt_tg_en').checked=!!d.telegram_enabled;$('nt_tg_token').value=d.telegram_bot_token||'';$('nt_tg_chat').value=d.telegram_chat_id||'';$('nt_wecom_en').checked=!!d.wecom_enabled;$('nt_wecom_url').value=d.wecom_webhook_url||'';}
-async function saveNotify(){const payload={server_name:$('nt_server').value.trim(),telegram_enabled:$('nt_tg_en').checked,telegram_bot_token:$('nt_tg_token').value.trim(),telegram_chat_id:$('nt_tg_chat').value.trim(),wecom_enabled:$('nt_wecom_en').checked,wecom_webhook_url:$('nt_wecom_url').value.trim()};const res=await fetch('/api/notifications',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const d=await res.json();if(d.status==='ok')alert('Í¨ÖªÅäÖÃÒÑ±£´æ');else alert(d.message||'±£´æÊ§°Ü');}
-async function testNotify(){const res=await fetch('/api/notifications/test',{method:'POST'});const d=await res.json();if(d.status==='ok')alert('²âÊÔÍ¨ÖªÒÑ·¢ËÍ');else alert(d.message||'·¢ËÍÊ§°Ü');}async function loadToken(){const r=await fetch('/api/token');if(!r.ok)return;const d=await r.json();$('local_token').value=d.token||'';}async function regenerateToken(){const r=await fetch('/api/token',{method:'POST'});if(!r.ok)return;const d=await r.json();$('local_token').value=d.token||'';alert('ÁîÅÆÒÑ¸üĞÂ');}function copyToken(){const v=$('local_token').value||'';if(!v)return;if(navigator.clipboard){navigator.clipboard.writeText(v).then(()=>alert('ÒÑ¸´ÖÆ'));}else{const t=document.createElement('textarea');t.value=v;document.body.appendChild(t);t.select();document.execCommand('copy');document.body.removeChild(t);alert('ÒÑ¸´ÖÆ');}}async function loadNodes(){const r=await fetch('/api/nodes');if(!r.ok)return;const d=await r.json();nodes=d.nodes||[];renderNodes();loadToken();}function renderNodes(){const t=$('nodeList');if(!t)return;t.innerHTML='';if(nodes.length===0){t.innerHTML='<tr><td colspan="4" style="text-align:center;color:#9ca3af">ÔİÎŞ½Úµã</td></tr>';return;}nodes.forEach(n=>{const status=n.enabled?'ÆôÓÃ':'½ûÓÃ';const actions=`<button class="btn btn-gray" onclick="openNodeRules('${n.id}')"><i class="fas fa-project-diagram"></i></button><button class="btn btn-gray" onclick="openEditNode('${n.id}')"><i class="fas fa-edit"></i></button><button class="btn btn-danger" onclick="delNode('${n.id}')"><i class="fas fa-trash-alt"></i></button>`;const row=document.createElement('tr');row.innerHTML=`<td>${n.name}</td><td>${n.host}:${n.port}</td><td>${status}</td><td style="text-align:right;display:flex;gap:6px;justify-content:flex-end">${actions}</td>`;t.appendChild(row);});}function openAddNode(){curNodeId=null;$('nodeModalTitle').innerText='Ìí¼Ó½Úµã';$('node_id').value='';$('node_name').value='';$('node_host').value='';$('node_port').value='4794';$('node_token').value='';$('node_enabled').checked=true;$('nodeModal').style.display='flex';}function openEditNode(id){curNodeId=id;const n=nodes.find(x=>x.id===id);if(!n)return;$('nodeModalTitle').innerText='±à¼­½Úµã';$('node_id').value=id;$('node_name').value=n.name;$('node_host').value=n.host;$('node_port').value=n.port||4794;$('node_token').value=n.api_token||'';$('node_enabled').checked=!!n.enabled;$('nodeModal').style.display='flex';}async function saveNode(){const name=$('node_name').value.trim();const host=$('node_host').value.trim();const port=parseInt($('node_port').value||'4794');const api_token=$('node_token').value.trim();const enabled=$('node_enabled').checked;if(!name||!host||!api_token)return alert('Ãû³Æ/µØÖ·/ÁîÅÆ²»ÄÜÎª¿Õ');const payload={name,host,port,api_token,enabled};const url=curNodeId?`/api/nodes/${curNodeId}`:'/api/nodes';const method=curNodeId?'PUT':'POST';const res=await fetch(url,{method,headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const d=await res.json();if(d.status==='ok'){closeModal();loadNodes();}else alert(d.message||'±£´æÊ§°Ü');}async function delNode(id){if(!confirm('È·¶¨É¾³ı¸Ã½Úµã£¿'))return;const res=await fetch(`/api/nodes/${id}`,{method:'DELETE'});const d=await res.json();if(d.status==='ok')loadNodes();else alert(d.message||'É¾³ıÊ§°Ü');}async function openNodeRules(id){curNodeId=id;const node=nodes.find(x=>x.id===id);$('nodeRulesTitle').innerText=`Ô¶³Ì¹æÔò - ${node?node.name:''}`;$('nodeRulesHint').innerText=node?`${node.host}:${node.port}`:'';const r=await fetch(`/api/nodes/${id}/rules`);if(!r.ok){const d=await r.json().catch(()=>({message:'¼ÓÔØÊ§°Ü'}));return alert(d.message||'¼ÓÔØÊ§°Ü');}const d=await r.json();remoteRules=Array.isArray(d)?d:(d.rules||[]);renderRemoteRules();$('nodeRulesModal').style.display='flex';}function renderRemoteRules(){const t=$('remoteRuleList');const ev=$('remoteEmpty');t.innerHTML='';if(remoteRules.length===0){ev.style.display='block';return;}ev.style.display='none';remoteRules.forEach(r=>{const status=`<span class="status-dot ${r.enabled?'bg-green':'bg-gray'}"></span>${r.enabled?'ÔÚÏß':'ÔİÍ£'}`;const btns=`<button class="btn btn-gray" onclick="toggleRemoteRule('${r.id}')"><i class="fas ${r.enabled?'fa-pause':'fa-play'}"></i></button><button class="btn btn-gray" onclick="openRemoteEdit('${r.id}')"><i class="fas fa-edit"></i></button><button class="btn btn-danger" onclick="deleteRemoteRule('${r.id}')"><i class="fas fa-trash-alt"></i></button>`;const row=document.createElement('tr');row.innerHTML=`<td>${status}</td><td>${r.name}</td><td>${r.listen}</td><td>${r.remote}</td><td style="text-align:right;display:flex;gap:6px;justify-content:flex-end">${btns}</td>`;t.appendChild(row);});}function openRemoteAdd(){curRemoteRuleId=null;$('remoteRuleTitle').innerText='Ìí¼ÓÔ¶³Ì¹æÔò';$('remote_rule_id').value='';$('remote_rule_name').value='';$('remote_rule_listen').value='';$('remote_rule_remote').value='';$('remoteRuleModal').style.display='flex';}function openRemoteEdit(id){curRemoteRuleId=id;const r=remoteRules.find(x=>x.id===id);if(!r)return;$('remoteRuleTitle').innerText='±à¼­Ô¶³Ì¹æÔò';$('remote_rule_id').value=id;$('remote_rule_name').value=r.name;$('remote_rule_listen').value=r.listen.replace('0.0.0.0:','');$('remote_rule_remote').value=r.remote;$('remoteRuleModal').style.display='flex';}async function saveRemoteRule(){const name=$('remote_rule_name').value.trim();let listen=$('remote_rule_listen').value.trim();const remote=$('remote_rule_remote').value.trim();if(!name||!listen||!remote)return alert('ÇëÌîĞ´±ØÌîÏî');if(!listen.includes(':'))listen='0.0.0.0:'+listen;const base=curRemoteRuleId?remoteRules.find(x=>x.id===curRemoteRuleId):null;const payload={name,listen,remote,expire_date:base?base.expire_date||0:0,traffic_limit:base?base.traffic_limit||0:0,bandwidth_enabled:base?!!base.bandwidth_enabled:false,bandwidth_limit:base?base.bandwidth_limit||'':'',billing_mode:base?base.billing_mode||'single':'single',reset_day:base?base.reset_day||0:0,remark:base?base.remark||name:name};const url=curRemoteRuleId?`/api/nodes/${curNodeId}/rules/${curRemoteRuleId}`:`/api/nodes/${curNodeId}/rules`;const method=curRemoteRuleId?'PUT':'POST';const res=await fetch(url,{method,headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const d=await res.json();if(d.status==='error'){alert(d.message||'±£´æÊ§°Ü');}else{$('remoteRuleModal').style.display='none';openNodeRules(curNodeId);}}async function deleteRemoteRule(id){if(!confirm('È·¶¨É¾³ı¸Ã¹æÔò£¿'))return;const res=await fetch(`/api/nodes/${curNodeId}/rules/${id}`,{method:'DELETE'});const d=await res.json();if(d.status==='error')alert(d.message||'É¾³ıÊ§°Ü');else openNodeRules(curNodeId);}async function toggleRemoteRule(id){await fetch(`/api/nodes/${curNodeId}/rules/${id}/toggle`,{method:'POST'});openNodeRules(curNodeId);} 
+async function saveNotify(){const payload={server_name:$('nt_server').value.trim(),telegram_enabled:$('nt_tg_en').checked,telegram_bot_token:$('nt_tg_token').value.trim(),telegram_chat_id:$('nt_tg_chat').value.trim(),wecom_enabled:$('nt_wecom_en').checked,wecom_webhook_url:$('nt_wecom_url').value.trim()};const res=await fetch('/api/notifications',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const d=await res.json();if(d.status==='ok')alert('é€šçŸ¥é…ç½®å·²ä¿å­˜');else alert(d.message||'ä¿å­˜å¤±è´¥');}
+async function testNotify(){const res=await fetch('/api/notifications/test',{method:'POST'});const d=await res.json();if(d.status==='ok')alert('æµ‹è¯•é€šçŸ¥å·²å‘é€');else alert(d.message||'å‘é€å¤±è´¥');}async function loadToken(){const r=await fetch('/api/token');if(!r.ok)return;const d=await r.json();$('local_token').value=d.token||'';}async function regenerateToken(){const r=await fetch('/api/token',{method:'POST'});if(!r.ok)return;const d=await r.json();$('local_token').value=d.token||'';alert('ä»¤ç‰Œå·²æ›´æ–°');}function copyToken(){const v=$('local_token').value||'';if(!v)return;if(navigator.clipboard){navigator.clipboard.writeText(v).then(()=>alert('å·²å¤åˆ¶'));}else{const t=document.createElement('textarea');t.value=v;document.body.appendChild(t);t.select();document.execCommand('copy');document.body.removeChild(t);alert('å·²å¤åˆ¶');}}async function loadNodes(){const r=await fetch('/api/nodes');if(!r.ok)return;const d=await r.json();nodes=d.nodes||[];renderNodes();loadToken();}function renderNodes(){const t=$('nodeList');if(!t)return;t.innerHTML='';if(nodes.length===0){t.innerHTML='<tr><td colspan="4" style="text-align:center;color:#9ca3af">æš‚æ— èŠ‚ç‚¹</td></tr>';return;}nodes.forEach(n=>{const status=n.enabled?'å¯ç”¨':'ç¦ç”¨';const actions=`<button class="btn btn-gray" onclick="openNodeRules('${n.id}')"><i class="fas fa-project-diagram"></i></button><button class="btn btn-gray" onclick="openEditNode('${n.id}')"><i class="fas fa-edit"></i></button><button class="btn btn-danger" onclick="delNode('${n.id}')"><i class="fas fa-trash-alt"></i></button>`;const row=document.createElement('tr');row.innerHTML=`<td>${n.name}</td><td>${n.host}:${n.port}</td><td>${status}</td><td style="text-align:right;display:flex;gap:6px;justify-content:flex-end">${actions}</td>`;t.appendChild(row);});}function openAddNode(){curNodeId=null;$('nodeModalTitle').innerText='æ·»åŠ èŠ‚ç‚¹';$('node_id').value='';$('node_name').value='';$('node_host').value='';$('node_port').value='4794';$('node_token').value='';$('node_enabled').checked=true;$('nodeModal').style.display='flex';}function openEditNode(id){curNodeId=id;const n=nodes.find(x=>x.id===id);if(!n)return;$('nodeModalTitle').innerText='ç¼–è¾‘èŠ‚ç‚¹';$('node_id').value=id;$('node_name').value=n.name;$('node_host').value=n.host;$('node_port').value=n.port||4794;$('node_token').value=n.api_token||'';$('node_enabled').checked=!!n.enabled;$('nodeModal').style.display='flex';}async function saveNode(){const name=$('node_name').value.trim();const host=$('node_host').value.trim();const port=parseInt($('node_port').value||'4794');const api_token=$('node_token').value.trim();const enabled=$('node_enabled').checked;if(!name||!host||!api_token)return alert('åç§°/åœ°å€/ä»¤ç‰Œä¸èƒ½ä¸ºç©º');const payload={name,host,port,api_token,enabled};const url=curNodeId?`/api/nodes/${curNodeId}`:'/api/nodes';const method=curNodeId?'PUT':'POST';const res=await fetch(url,{method,headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const d=await res.json();if(d.status==='ok'){closeModal();loadNodes();}else alert(d.message||'ä¿å­˜å¤±è´¥');}async function delNode(id){if(!confirm('ç¡®å®šåˆ é™¤è¯¥èŠ‚ç‚¹ï¼Ÿ'))return;const res=await fetch(`/api/nodes/${id}`,{method:'DELETE'});const d=await res.json();if(d.status==='ok')loadNodes();else alert(d.message||'åˆ é™¤å¤±è´¥');}async function openNodeRules(id){curNodeId=id;const node=nodes.find(x=>x.id===id);$('nodeRulesTitle').innerText=`è¿œç¨‹è§„åˆ™ - ${node?node.name:''}`;$('nodeRulesHint').innerText=node?`${node.host}:${node.port}`:'';const r=await fetch(`/api/nodes/${id}/rules`);if(!r.ok){const d=await r.json().catch(()=>({message:'åŠ è½½å¤±è´¥'}));return alert(d.message||'åŠ è½½å¤±è´¥');}const d=await r.json();remoteRules=Array.isArray(d)?d:(d.rules||[]);renderRemoteRules();$('nodeRulesModal').style.display='flex';}function renderRemoteRules(){const t=$('remoteRuleList');const ev=$('remoteEmpty');t.innerHTML='';if(remoteRules.length===0){ev.style.display='block';return;}ev.style.display='none';remoteRules.forEach(r=>{const status=`<span class="status-dot ${r.enabled?'bg-green':'bg-gray'}"></span>${r.enabled?'åœ¨çº¿':'æš‚åœ'}`;const btns=`<button class="btn btn-gray" onclick="toggleRemoteRule('${r.id}')"><i class="fas ${r.enabled?'fa-pause':'fa-play'}"></i></button><button class="btn btn-gray" onclick="openRemoteEdit('${r.id}')"><i class="fas fa-edit"></i></button><button class="btn btn-danger" onclick="deleteRemoteRule('${r.id}')"><i class="fas fa-trash-alt"></i></button>`;const row=document.createElement('tr');row.innerHTML=`<td>${status}</td><td>${r.name}</td><td>${r.listen}</td><td>${r.remote}</td><td style="text-align:right;display:flex;gap:6px;justify-content:flex-end">${btns}</td>`;t.appendChild(row);});}function openRemoteAdd(){curRemoteRuleId=null;$('remoteRuleTitle').innerText='æ·»åŠ è¿œç¨‹è§„åˆ™';$('remote_rule_id').value='';$('remote_rule_name').value='';$('remote_rule_listen').value='';$('remote_rule_remote').value='';$('remoteRuleModal').style.display='flex';}function openRemoteEdit(id){curRemoteRuleId=id;const r=remoteRules.find(x=>x.id===id);if(!r)return;$('remoteRuleTitle').innerText='ç¼–è¾‘è¿œç¨‹è§„åˆ™';$('remote_rule_id').value=id;$('remote_rule_name').value=r.name;$('remote_rule_listen').value=r.listen.replace('0.0.0.0:','');$('remote_rule_remote').value=r.remote;$('remoteRuleModal').style.display='flex';}async function saveRemoteRule(){const name=$('remote_rule_name').value.trim();let listen=$('remote_rule_listen').value.trim();const remote=$('remote_rule_remote').value.trim();if(!name||!listen||!remote)return alert('è¯·å¡«å†™å¿…å¡«é¡¹');if(!listen.includes(':'))listen='0.0.0.0:'+listen;const base=curRemoteRuleId?remoteRules.find(x=>x.id===curRemoteRuleId):null;const payload={name,listen,remote,expire_date:base?base.expire_date||0:0,traffic_limit:base?base.traffic_limit||0:0,bandwidth_enabled:base?!!base.bandwidth_enabled:false,bandwidth_limit:base?base.bandwidth_limit||'':'',billing_mode:base?base.billing_mode||'single':'single',reset_day:base?base.reset_day||0:0,remark:base?base.remark||name:name};const url=curRemoteRuleId?`/api/nodes/${curNodeId}/rules/${curRemoteRuleId}`:`/api/nodes/${curNodeId}/rules`;const method=curRemoteRuleId?'PUT':'POST';const res=await fetch(url,{method,headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const d=await res.json();if(d.status==='error'){alert(d.message||'ä¿å­˜å¤±è´¥');}else{$('remoteRuleModal').style.display='none';openNodeRules(curNodeId);}}async function deleteRemoteRule(id){if(!confirm('ç¡®å®šåˆ é™¤è¯¥è§„åˆ™ï¼Ÿ'))return;const res=await fetch(`/api/nodes/${curNodeId}/rules/${id}`,{method:'DELETE'});const d=await res.json();if(d.status==='error')alert(d.message||'åˆ é™¤å¤±è´¥');else openNodeRules(curNodeId);}async function toggleRemoteRule(id){await fetch(`/api/nodes/${curNodeId}/rules/${id}/toggle`,{method:'POST'});openNodeRules(curNodeId);} 
 async function doLogout(){await fetch('/logout',{method:'POST'});location.href='/login'}
 function openBatch(){$('batchModal').style.display='flex';$('batch_input').value='';}
-async function saveBatch(){const raw=$('batch_input').value;if(!raw.trim())return;const lines=raw.split('\n');const payload=[];for(let line of lines){line=line.trim();if(!line)continue;line=line.replace(/£¬/g,',');const parts=line.split(',');if(parts.length<3)continue;let [n,l,r]=[parts[0].trim(),parts[1].trim(),parts[2].trim()];if(l&&!l.includes(':'))l='0.0.0.0:'+l;if(n&&l&&r){payload.push({name:n,listen:l,remote:r,expire_date:0,traffic_limit:0});}}if(payload.length===0)return alert('¸ñÊ½´íÎó');const res=await fetch('/api/rules/batch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});alert((await res.json()).message);$('batchModal').style.display='none';load()}
-async function delAll(){if(rules.length===0||!confirm('?? È·¶¨Çå¿Õ£¿'))return;await fetch('/api/rules/all',{method:'DELETE'});load()}
-function downloadBackup(){if(rules.length===0)return alert('ÎŞÊı¾İ');window.location.href='/api/backup'}
+async function saveBatch(){const raw=$('batch_input').value;if(!raw.trim())return;const lines=raw.split('\n');const payload=[];for(let line of lines){line=line.trim();if(!line)continue;line=line.replace(/ï¼Œ/g,',');const parts=line.split(',');if(parts.length<3)continue;let [n,l,r]=[parts[0].trim(),parts[1].trim(),parts[2].trim()];if(l&&!l.includes(':'))l='0.0.0.0:'+l;if(n&&l&&r){payload.push({name:n,listen:l,remote:r,expire_date:0,traffic_limit:0});}}if(payload.length===0)return alert('æ ¼å¼é”™è¯¯');const res=await fetch('/api/rules/batch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});alert((await res.json()).message);$('batchModal').style.display='none';load()}
+async function delAll(){if(rules.length===0||!confirm('âš ï¸ ç¡®å®šæ¸…ç©ºï¼Ÿ'))return;await fetch('/api/rules/all',{method:'DELETE'});load()}
+function downloadBackup(){if(rules.length===0)return alert('æ— æ•°æ®');window.location.href='/api/backup'}
 function openRestore(){$('restoreModal').style.display='flex'}
-async function doRestore(){try{const p=JSON.parse($('restore_input').value);if(!Array.isArray(p))throw 1;if(!confirm('È·¶¨¸²¸Ç£¿'))return;await fetch('/api/restore',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});location.reload()}catch(e){alert('JSON¸ñÊ½´íÎó')}}
+async function doRestore(){try{const p=JSON.parse($('restore_input').value);if(!Array.isArray(p))throw 1;if(!confirm('ç¡®å®šè¦†ç›–ï¼Ÿ'))return;await fetch('/api/restore',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});location.reload()}catch(e){alert('JSONæ ¼å¼é”™è¯¯')}}
 setInterval(load, 3000);
 load();window.addEventListener('resize',render);
 </script></body></html>
 "#;
 EOF
 
-echo -e -n "${CYAN}>>> ±àÒëÃæ°å³ÌĞò (ÇëÄÍĞÄµÈ´ı£¡)...${RESET}"
+echo -e -n "${CYAN}>>> ç¼–è¯‘é¢æ¿ç¨‹åº (è¯·è€å¿ƒç­‰å¾…ï¼)...${RESET}"
 OS_ARCH=$(uname -m)
 if [[ "$OS_ARCH" == "aarch64" ]]; then
     RUST_TRIPLE="aarch64-unknown-linux-gnu"
@@ -1653,17 +1653,17 @@ EOF
 fi
 
 
-# ±àÒë²¢¼ì²é
+# ç¼–è¯‘å¹¶æ£€æŸ¥
 cargo clean >/dev/null 2>&1
 cargo build --release > /tmp/realm_build.log 2>&1
 
 if [ $? -eq 0 ] && [ -f "target/release/realm-panel" ]; then
-    echo -e "${GREEN} [Íê³É]${RESET}"
-    echo -e -n "${CYAN}>>> ÕıÔÚ²¿Êğ·şÎñ...${RESET}"
+    echo -e "${GREEN} [å®Œæˆ]${RESET}"
+    echo -e -n "${CYAN}>>> æ­£åœ¨éƒ¨ç½²æœåŠ¡...${RESET}"
     mv target/release/realm-panel "$PANEL_BIN"
 else
-    echo -e "${RED} [Ê§°Ü]${RESET}"
-    echo -e "${RED}================ ´íÎóÏêÇé ================${RESET}"
+    echo -e "${RED} [å¤±è´¥]${RESET}"
+    echo -e "${RED}================ é”™è¯¯è¯¦æƒ… ================${RESET}"
     cat /tmp/realm_build.log
     echo -e "${RED}==========================================${RESET}"
     exit 1
@@ -1693,16 +1693,16 @@ EOF
 systemctl daemon-reload
 systemctl enable realm-panel >/dev/null 2>&1
 systemctl restart realm-panel >/dev/null 2>&1
-echo -e "${GREEN} [Íê³É]${RESET}"
+echo -e "${GREEN} [å®Œæˆ]${RESET}"
 
 IP=$(curl -s4 ifconfig.me || hostname -I | awk '{print $1}')
 echo -e ""
 echo -e "${GREEN}====================================${RESET}"
-echo -e "${GREEN}          ? Realm Ãæ°å²¿Êğ³É¹¦       ${RESET}"
+echo -e "${GREEN}          âœ… Realm é¢æ¿éƒ¨ç½²æˆåŠŸ       ${RESET}"
 echo -e "${GREEN}====================================${RESET}"
-echo -e "·ÃÎÊµØÖ· : ${YELLOW}http://${IP}:${PANEL_PORT}${RESET}"
-echo -e "Ä¬ÈÏÓÃ»§ : ${YELLOW}${DEFAULT_USER}${RESET}"
-echo -e "Ä¬ÈÏÃÜÂë : ${YELLOW}${DEFAULT_PASS}${RESET}"
+echo -e "è®¿é—®åœ°å€ : ${YELLOW}http://${IP}:${PANEL_PORT}${RESET}"
+echo -e "é»˜è®¤ç”¨æˆ· : ${YELLOW}${DEFAULT_USER}${RESET}"
+echo -e "é»˜è®¤å¯†ç  : ${YELLOW}${DEFAULT_PASS}${RESET}"
 echo -e "------------------------------------------"
 
 

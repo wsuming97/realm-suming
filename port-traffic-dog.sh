@@ -3,7 +3,7 @@
 set -euo pipefail
 
 readonly SCRIPT_VERSION="1.2.5"
-readonly SCRIPT_NAME="端口流量�?
+readonly SCRIPT_NAME="端口流量狗"
 readonly SCRIPT_PATH="$(realpath "$0")"
 readonly CONFIG_DIR="/etc/port-traffic-dog"
 readonly CONFIG_FILE="$CONFIG_DIR/config.json"
@@ -84,8 +84,8 @@ install_missing_tools() {
             ;;
         *)
             echo -e "${RED}不支持的系统类型: $system_type${NC}"
-            echo "支持的系�? Ubuntu, Debian"
-            echo "请手动安�? ${missing_tools[*]}"
+            echo "支持的系统: Ubuntu, Debian"
+            echo "请手动安装: ${missing_tools[*]}"
             exit 1
             ;;
     esac
@@ -127,7 +127,8 @@ check_dependencies() {
 
     setup_script_permissions
     setup_cron_environment
-    # 重启后恢复定时任�?    local active_ports=($(get_active_ports 2>/dev/null || true))
+    # 重启后恢复定时任务
+    local active_ports=($(get_active_ports 2>/dev/null || true))
     for port in "${active_ports[@]}"; do
         setup_port_auto_reset_cron "$port" >/dev/null 2>&1 || true
     done
@@ -144,7 +145,8 @@ setup_script_permissions() {
 }
 
 setup_cron_environment() {
-    # cron环境PATH不完整，需要设置完整路�?    local current_cron=$(crontab -l 2>/dev/null || true)
+    # cron环境PATH不完整，需要设置完整路径
+    local current_cron=$(crontab -l 2>/dev/null || true)
     if ! echo "$current_cron" | grep -q "^PATH=.*sbin"; then
         local temp_cron=$(mktemp)
         echo "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" > "$temp_cron"
@@ -288,7 +290,7 @@ show_port_list() {
         return 1
     fi
 
-    echo "当前监控的端�?"
+    echo "当前监控的端口:"
     for i in "${!active_ports[@]}"; do
         local port=${active_ports[$i]}
         local status_label=$(get_port_status_label "$port")
@@ -347,7 +349,7 @@ parse_port_range_input() {
             fi
 
             if [ "$start_port" -lt 1 ] || [ "$start_port" -gt 65535 ] || [ "$end_port" -lt 1 ] || [ "$end_port" -gt 65535 ]; then
-                echo -e "${RED}错误：端口段 $part 包含无效端口，必须在1-65535范围�?{NC}"
+                echo -e "${RED}错误：端口段 $part 包含无效端口，必须在1-65535范围内${NC}"
                 return 1
             fi
 
@@ -357,7 +359,7 @@ parse_port_range_input() {
             if [ "$part" -ge 1 ] && [ "$part" -le 65535 ]; then
                 result_array+=("$part")
             else
-                echo -e "${RED}错误：端口号 $part 无效，必须是1-65535之间的数�?{NC}"
+                echo -e "${RED}错误：端口号 $part 无效，必须是1-65535之间的数字${NC}"
                 return 1
             fi
         else
@@ -441,7 +443,8 @@ save_traffic_data() {
         local current_input=${traffic_data[0]}
         local current_output=${traffic_data[1]}
 
-        # 只备份有意义的数�?        if [ $current_input -gt 0 ] || [ $current_output -gt 0 ]; then
+        # 只备份有意义的数据
+        if [ $current_input -gt 0 ] || [ $current_output -gt 0 ]; then
             jq ".\"$port\" = {\"input\": $current_input, \"output\": $current_output, \"backup_time\": \"$(get_beijing_time -Iseconds)\"}" \
                 "$temp_file" > "${temp_file}.tmp" && mv "${temp_file}.tmp" "$temp_file"
         fi
@@ -455,7 +458,8 @@ save_traffic_data() {
 }
 
 setup_exit_hooks() {
-    # 进程退出时自动保存数据，避免重启丢�?    trap 'save_traffic_data_on_exit' EXIT
+    # 进程退出时自动保存数据，避免重启丢失
+    trap 'save_traffic_data_on_exit' EXIT
     trap 'save_traffic_data_on_exit; exit 1' INT TERM
 }
 
@@ -470,7 +474,8 @@ restore_monitoring_if_needed() {
         return 0
     fi
 
-    # 检查nftables规则是否存在，判断是否需要恢�?    local table_name=$(jq -r '.nftables.table_name' "$CONFIG_FILE")
+    # 检查nftables规则是否存在，判断是否需要恢复
+    local table_name=$(jq -r '.nftables.table_name' "$CONFIG_FILE")
     local family=$(jq -r '.nftables.family' "$CONFIG_FILE")
     local need_restore=false
 
@@ -513,7 +518,8 @@ restore_traffic_data_from_backup() {
         fi
     done
 
-    # 恢复完成后删除备份文�?    rm -f "$TRAFFIC_DATA_FILE"
+    # 恢复完成后删除备份文件
+    rm -f "$TRAFFIC_DATA_FILE"
 }
 
 restore_counter_value() {
@@ -579,7 +585,8 @@ calculate_total_traffic() {
     local billing_mode=${3:-"double"}
     case $billing_mode in
         "double")
-            # 双向统计：input + output（计数器已在规则层面×2�?            echo $((input_bytes + output_bytes))
+            # 双向统计：input + output（计数器已在规则层面×2）
+            echo $((input_bytes + output_bytes))
             ;;
         "single"|*)
             # 单向统计：仅 output
@@ -604,7 +611,7 @@ get_port_status_label() {
     
     # 有流量限额时，获取重置日期（null表示用户取消了自动重置）
     if [ "$monthly_limit" != "unlimited" ] && [ "$reset_day_raw" != "null" ]; then
-        reset_day="${reset_day_raw:-1}"  # 未配置时默认�?
+        reset_day="${reset_day_raw:-1}"  # 未配置时默认为1
     fi
 
     local status_tags=()
@@ -640,7 +647,7 @@ get_port_status_label() {
                     fi
                 fi
                 
-                status_tags+=("[${next_month}�?{reset_day}日重置]")
+                status_tags+=("[${next_month}月${reset_day}日重置]")
             fi
 
             if [ $usage_percent -ge 100 ]; then
@@ -730,7 +737,8 @@ generate_port_range_mark() {
     local port_range=$1
     local start_port=$(echo "$port_range" | cut -d'-' -f1)
     local end_port=$(echo "$port_range" | cut -d'-' -f2)
-    # 确定性算法：避免不同端口段产生相同标�?    echo $(( (start_port * 1000 + end_port) % 65536 ))
+    # 确定性算法：避免不同端口段产生相同标记
+    echo $(( (start_port * 1000 + end_port) % 65536 ))
 }
 
 # burst速率突发计算
@@ -738,7 +746,8 @@ calculate_tc_burst() {
     local base_rate=$1
     local rate_bytes_per_sec=$((base_rate * 1000 / 8))
     local burst_by_formula=$((rate_bytes_per_sec / 20))  # 50ms缓冲
-    local min_burst=$((2 * 1500))                        # 2个MTU最小�?
+    local min_burst=$((2 * 1500))                        # 2个MTU最小值
+
     if [ $burst_by_formula -gt $min_burst ]; then
         echo $burst_by_formula
     else
@@ -773,11 +782,12 @@ parse_tc_rate_to_kbps() {
 generate_tc_class_id() {
     local port=$1
     if is_port_range "$port"; then
-        # 端口段使�?x2000+标记避免与单端口冲突
+        # 端口段使用0x2000+标记避免与单端口冲突
         local mark_id=$(generate_port_range_mark "$port")
         echo "1:$(printf '%x' $((0x2000 + mark_id)))"
     else
-        # 单端口使�?x1000+端口�?        echo "1:$(printf '%x' $((0x1000 + port)))"
+        # 单端口使用0x1000+端口号
+        echo "1:$(printf '%x' $((0x1000 + port)))"
     fi
 }
 
@@ -814,13 +824,13 @@ format_port_list() {
 
 
         if [ "$format_type" = "display" ]; then
-            echo -e "端口:${GREEN}$port${NC} | 总流�?${GREEN}$total_formatted${NC} | 上行(入站): ${GREEN}$input_formatted${NC} | 下行(出站):${GREEN}$output_formatted${NC} | ${YELLOW}$status_label${NC}"
+            echo -e "端口:${GREEN}$port${NC} | 总流量:${GREEN}$total_formatted${NC} | 上行(入站): ${GREEN}$input_formatted${NC} | 下行(出站):${GREEN}$output_formatted${NC} | ${YELLOW}$status_label${NC}"
         elif [ "$format_type" = "markdown" ]; then
-            result+="> 端口:**${port}** | 总流�?**${total_formatted}** | 上行:**${input_formatted}** | 下行:**${output_formatted}** | ${status_label}
+            result+="> 端口:**${port}** | 总流量:**${total_formatted}** | 上行:**${input_formatted}** | 下行:**${output_formatted}** | ${status_label}
 "
         else
             result+="
-端口:${port} | 总流�?${total_formatted} | 上行(入站): ${input_formatted} | 下行(出站):${output_formatted} | ${status_label}"
+端口:${port} | 总流量:${total_formatted} | 上行(入站): ${input_formatted} | 下行(出站):${output_formatted} | ${status_label}"
         fi
     done
 
@@ -829,19 +839,20 @@ format_port_list() {
     fi
 }
 
-# 显示主界�?show_main_menu() {
+# 显示主界面
+show_main_menu() {
     clear
 
     local active_ports=($(get_active_ports))
     local port_count=${#active_ports[@]}
     local daily_total=$(get_daily_total_traffic)
 
-    echo -e "${BLUE}=== 端口流量�?v$SCRIPT_VERSION ===${NC}"
-    echo -e "${GREEN}介绍主页:${NC}https://zywe.de | ${GREEN}项目开�?${NC}https://github.com/zywe03/realm-xwPF"
+    echo -e "${BLUE}=== 端口流量狗 v$SCRIPT_VERSION ===${NC}"
+    echo -e "${GREEN}介绍主页:${NC}https://zywe.de | ${GREEN}项目开源:${NC}https://github.com/zywe03/realm-xwPF"
     echo -e "${GREEN}一只轻巧的‘守护犬’，时刻守护你的端口流量 | 快捷命令: dog${NC}"
     echo
 
-    echo -e "${GREEN}状�? 监控�?{NC} | ${BLUE}守护端口: ${port_count}�?{NC} | ${YELLOW}端口总流�? $daily_total${NC}"
+    echo -e "${GREEN}状态: 监控中${NC} | ${BLUE}守护端口: ${port_count}个${NC} | ${YELLOW}端口总流量: $daily_total${NC}"
     echo "────────────────────────────────────────────────────────"
 
     if [ $port_count -gt 0 ]; then
@@ -853,10 +864,10 @@ format_port_list() {
     echo "────────────────────────────────────────────────────────"
 
     echo -e "${BLUE}1.${NC} 添加/删除端口监控     ${BLUE}2.${NC} 端口限制设置管理"
-    echo -e "${BLUE}3.${NC} 流量重置管理          ${BLUE}4.${NC} 一键导�?导入配置"
+    echo -e "${BLUE}3.${NC} 流量重置管理          ${BLUE}4.${NC} 一键导出/导入配置"
     echo -e "${BLUE}5.${NC} 安装依赖(更新)脚本    ${BLUE}6.${NC} 卸载脚本"
     echo -e "${BLUE}7.${NC} 通知管理"
-    echo -e "${BLUE}0.${NC} 退�?
+    echo -e "${BLUE}0.${NC} 退出"
     echo
     read -p "请选择操作 [0-7]: " choice
 
@@ -877,7 +888,7 @@ manage_port_monitoring() {
     echo -e "${BLUE}=== 端口监控管理 ===${NC}"
     echo "1. 添加端口监控"
     echo "2. 删除端口监控"
-    echo "0. 返回主菜�?
+    echo "0. 返回主菜单"
     echo
     read -p "请选择操作 [0-2]: " choice
 
@@ -894,10 +905,11 @@ add_port_monitoring() {
     echo
 
     echo -e "${GREEN}当前系统端口使用情况:${NC}"
-    printf "%-15s %-9s\n" "程序�? "端口"
+    printf "%-15s %-9s\n" "程序名" "端口"
     echo "────────────────────────────────────────────────────────"
 
-    # 解析ss输出，聚合同程序的端�?    declare -A program_ports
+    # 解析ss输出，聚合同程序的端口
+    declare -A program_ports
     while read line; do
         if [[ "$line" =~ LISTEN|UNCONN ]]; then
             local_addr=$(echo "$line" | awk '{print $5}')
@@ -923,13 +935,13 @@ add_port_monitoring() {
             printf "%-10s | %-9s\n" "$program" "$ports"
         done
     else
-        echo "无活跃端�?
+        echo "无活跃端口"
     fi
 
     echo "────────────────────────────────────────────────────────"
     echo
 
-    read -p "请输入要监控的端口号（多端口使用逗号,分隔,端口段使�?分隔�? " port_input
+    read -p "请输入要监控的端口号（多端口使用逗号,分隔,端口段使用-分隔）: " port_input
 
     local PORTS=()
     parse_port_range_input "$port_input" PORTS
@@ -954,10 +966,10 @@ add_port_monitoring() {
     echo
     echo -e "${GREEN}说明:${NC}"
     echo "1. 双向流量统计"
-    echo "   总流�?= in*2 + out*2"
+    echo "   总流量 = in*2 + out*2"
     echo
     echo "2. 单向流量统计"
-    echo "   仅统计出站流量，总流�?= out"
+    echo "   仅统计出站流量，总流量 = out"
     echo
     echo "请选择统计模式:"
     echo "1. 双向流量统计"
@@ -974,9 +986,9 @@ add_port_monitoring() {
     echo
     local port_list=$(IFS=','; echo "${valid_ports[*]}")
     while true; do
-        echo "为端�?$port_list 设置流量配额（总量控制�?"
-        echo "请输入配额值（0为无限制）（要带单位MB/GB/T�?"
-        echo "(多端口分别配额使用逗号,分隔)(只输入一个值，应用到所有端�?:"
+        echo "为端口 $port_list 设置流量配额（总量控制）:"
+        echo "请输入配额值（0为无限制）（要带单位MB/GB/T）:"
+        echo "(多端口分别配额使用逗号,分隔)(只输入一个值，应用到所有端口):"
         read -p "流量配额(回车默认0): " quota_input
 
         if [ -z "$quota_input" ]; then
@@ -996,13 +1008,13 @@ add_port_monitoring() {
         done
 
         if [ "$all_valid" = false ]; then
-            echo "请重新输入配额�?
+            echo "请重新输入配额值"
             continue
         fi
 
         expand_single_value_to_array QUOTAS ${#valid_ports[@]}
         if [ ${#QUOTAS[@]} -ne ${#valid_ports[@]} ]; then
-            echo -e "${RED}配额值数量与端口数量不匹�?{NC}"
+            echo -e "${RED}配额值数量与端口数量不匹配${NC}"
             continue
         fi
 
@@ -1011,8 +1023,8 @@ add_port_monitoring() {
 
     echo
     echo -e "${BLUE}=== 规则备注配置 ===${NC}"
-    echo "请输入当前规则备�?可选，直接回车跳过):"
-    echo "(多端口排序分别备注使用逗号,分隔)(只输入一个值，应用到所有端�?:"
+    echo "请输入当前规则备注(可选，直接回车跳过):"
+    echo "(多端口排序分别备注使用逗号,分隔)(只输入一个值，应用到所有端口):"
     read -p "备注: " remark_input
 
     local REMARKS=()
@@ -1044,7 +1056,8 @@ add_port_monitoring() {
             monthly_limit="$quota"
         fi
 
-        # 只有设置了流量限额时才添加reset_day字段（默认为1�?        local quota_config
+        # 只有设置了流量限额时才添加reset_day字段（默认为1）
+        local quota_config
         if [ "$monthly_limit" != "unlimited" ]; then
             quota_config="{
                 \"enabled\": $quota_enabled,
@@ -1084,7 +1097,7 @@ add_port_monitoring() {
     done
 
     echo
-    echo -e "${GREEN}成功添加 $added_count 个端口监�?{NC}"
+    echo -e "${GREEN}成功添加 $added_count 个端口监控${NC}"
 
     sleep 2
     manage_port_monitoring
@@ -1103,7 +1116,7 @@ remove_port_monitoring() {
     fi
     echo
 
-    read -p "请选择要删除的端口（多端口使用逗号,分隔�? " choice_input
+    read -p "请选择要删除的端口（多端口使用逗号,分隔）: " choice_input
 
     local valid_choices=()
     local ports_to_delete=()
@@ -1128,7 +1141,7 @@ remove_port_monitoring() {
     done
     echo
 
-    read -p "确认删除这些端口的监�? [y/N]: " confirm
+    read -p "确认删除这些端口的监控? [y/N]: " confirm
     if [[ "$confirm" =~ ^[Yy]$ ]]; then
         local deleted_count=0
         for port in "${ports_to_delete[@]}"; do
@@ -1152,31 +1165,32 @@ remove_port_monitoring() {
 
             remove_port_auto_reset_cron "$port"
 
-            echo -e "${GREEN}端口 $port 监控及相关数据删除成�?{NC}"
+            echo -e "${GREEN}端口 $port 监控及相关数据删除成功${NC}"
             deleted_count=$((deleted_count + 1))
         done
 
         echo
-        echo -e "${GREEN}成功删除 $deleted_count 个端口监�?{NC}"
+        echo -e "${GREEN}成功删除 $deleted_count 个端口监控${NC}"
 
-        # 清理连接跟踪：确保现有连接不受限�?        echo "正在清理网络状�?.."
+        # 清理连接跟踪：确保现有连接不受限制
+        echo "正在清理网络状态..."
         for port in "${ports_to_delete[@]}"; do
             if is_port_range "$port"; then
                 local start_port=$(echo "$port" | cut -d'-' -f1)
                 local end_port=$(echo "$port" | cut -d'-' -f2)
-                echo "清理端口�?$port 连接状�?.."
+                echo "清理端口段 $port 连接状态..."
                 for ((p=start_port; p<=end_port; p++)); do
                     conntrack -D -p tcp --dport $p 2>/dev/null || true
                     conntrack -D -p udp --dport $p 2>/dev/null || true
                 done
             else
-                echo "清理端口 $port 连接状�?.."
+                echo "清理端口 $port 连接状态..."
                 conntrack -D -p tcp --dport $port 2>/dev/null || true
                 conntrack -D -p udp --dport $port 2>/dev/null || true
             fi
         done
 
-        echo -e "${GREEN}网络状态已清理，现有连接的限制应该已解�?{NC}"
+        echo -e "${GREEN}网络状态已清理，现有连接的限制应该已解除${NC}"
         echo -e "${YELLOW}提示：新建连接将不受任何限制${NC}"
 
         local remaining_ports=($(get_active_ports))
@@ -1202,12 +1216,14 @@ add_nftables_rules() {
         local mark_id=$(generate_port_range_mark "$port")
 
         if [ "$billing_mode" = "double" ]; then
-            # 双向模式：创�?in �?out 两个计数器，各绑定规则两次（×2�?            nft list counter $family $table_name "port_${port_safe}_in" >/dev/null 2>&1 || \
+            # 双向模式：创建 in 和 out 两个计数器，各绑定规则两次（×2）
+            nft list counter $family $table_name "port_${port_safe}_in" >/dev/null 2>&1 || \
                 nft add counter $family $table_name "port_${port_safe}_in" 2>/dev/null || true
             nft list counter $family $table_name "port_${port_safe}_out" >/dev/null 2>&1 || \
                 nft add counter $family $table_name "port_${port_safe}_out" 2>/dev/null || true
 
-            # in 计数器：绑定 input 规则两次（in × 2�?            nft add rule $family $table_name input tcp dport $port meta mark set $mark_id counter name "port_${port_safe}_in"
+            # in 计数器：绑定 input 规则两次（in × 2）
+            nft add rule $family $table_name input tcp dport $port meta mark set $mark_id counter name "port_${port_safe}_in"
             nft add rule $family $table_name input udp dport $port meta mark set $mark_id counter name "port_${port_safe}_in"
             nft add rule $family $table_name forward tcp dport $port meta mark set $mark_id counter name "port_${port_safe}_in"
             nft add rule $family $table_name forward udp dport $port meta mark set $mark_id counter name "port_${port_safe}_in"
@@ -1216,7 +1232,8 @@ add_nftables_rules() {
             nft add rule $family $table_name forward tcp dport $port meta mark set $mark_id counter name "port_${port_safe}_in"
             nft add rule $family $table_name forward udp dport $port meta mark set $mark_id counter name "port_${port_safe}_in"
 
-            # out 计数器：绑定 output 规则两次（out × 2�?            nft add rule $family $table_name output tcp sport $port meta mark set $mark_id counter name "port_${port_safe}_out"
+            # out 计数器：绑定 output 规则两次（out × 2）
+            nft add rule $family $table_name output tcp sport $port meta mark set $mark_id counter name "port_${port_safe}_out"
             nft add rule $family $table_name output udp sport $port meta mark set $mark_id counter name "port_${port_safe}_out"
             nft add rule $family $table_name forward tcp sport $port meta mark set $mark_id counter name "port_${port_safe}_out"
             nft add rule $family $table_name forward udp sport $port meta mark set $mark_id counter name "port_${port_safe}_out"
@@ -1225,7 +1242,8 @@ add_nftables_rules() {
             nft add rule $family $table_name forward tcp sport $port meta mark set $mark_id counter name "port_${port_safe}_out"
             nft add rule $family $table_name forward udp sport $port meta mark set $mark_id counter name "port_${port_safe}_out"
         else
-            # 单向模式：只创建 out 计数器，绑定 output 规则一次（out × 1�?            nft list counter $family $table_name "port_${port_safe}_out" >/dev/null 2>&1 || \
+            # 单向模式：只创建 out 计数器，绑定 output 规则一次（out × 1）
+            nft list counter $family $table_name "port_${port_safe}_out" >/dev/null 2>&1 || \
                 nft add counter $family $table_name "port_${port_safe}_out" 2>/dev/null || true
 
             nft add rule $family $table_name output tcp sport $port meta mark set $mark_id counter name "port_${port_safe}_out"
@@ -1235,12 +1253,14 @@ add_nftables_rules() {
         fi
     else
         if [ "$billing_mode" = "double" ]; then
-            # 双向模式：创�?in �?out 两个计数�?            nft list counter $family $table_name "port_${port}_in" >/dev/null 2>&1 || \
+            # 双向模式：创建 in 和 out 两个计数器
+            nft list counter $family $table_name "port_${port}_in" >/dev/null 2>&1 || \
                 nft add counter $family $table_name "port_${port}_in" 2>/dev/null || true
             nft list counter $family $table_name "port_${port}_out" >/dev/null 2>&1 || \
                 nft add counter $family $table_name "port_${port}_out" 2>/dev/null || true
 
-            # in 计数器：绑定 input 规则两次（in × 2�?            nft add rule $family $table_name input tcp dport $port counter name "port_${port}_in"
+            # in 计数器：绑定 input 规则两次（in × 2）
+            nft add rule $family $table_name input tcp dport $port counter name "port_${port}_in"
             nft add rule $family $table_name input udp dport $port counter name "port_${port}_in"
             nft add rule $family $table_name forward tcp dport $port counter name "port_${port}_in"
             nft add rule $family $table_name forward udp dport $port counter name "port_${port}_in"
@@ -1249,7 +1269,8 @@ add_nftables_rules() {
             nft add rule $family $table_name forward tcp dport $port counter name "port_${port}_in"
             nft add rule $family $table_name forward udp dport $port counter name "port_${port}_in"
 
-            # out 计数器：绑定 output 规则两次（out × 2�?            nft add rule $family $table_name output tcp sport $port counter name "port_${port}_out"
+            # out 计数器：绑定 output 规则两次（out × 2）
+            nft add rule $family $table_name output tcp sport $port counter name "port_${port}_out"
             nft add rule $family $table_name output udp sport $port counter name "port_${port}_out"
             nft add rule $family $table_name forward tcp sport $port counter name "port_${port}_out"
             nft add rule $family $table_name forward udp sport $port counter name "port_${port}_out"
@@ -1258,7 +1279,8 @@ add_nftables_rules() {
             nft add rule $family $table_name forward tcp sport $port counter name "port_${port}_out"
             nft add rule $family $table_name forward udp sport $port counter name "port_${port}_out"
         else
-            # 单向模式：只创建 out 计数器，绑定 output 规则一次（out × 1�?            nft list counter $family $table_name "port_${port}_out" >/dev/null 2>&1 || \
+            # 单向模式：只创建 out 计数器，绑定 output 规则一次（out × 1）
+            nft list counter $family $table_name "port_${port}_out" >/dev/null 2>&1 || \
                 nft add counter $family $table_name "port_${port}_out" 2>/dev/null || true
 
             nft add rule $family $table_name output tcp sport $port counter name "port_${port}_out"
@@ -1281,7 +1303,8 @@ remove_nftables_rules() {
         local search_pattern="port_${port}_"
     fi
 
-    # 使用handle删除法：逐个删除匹配的规�?    local deleted_count=0
+    # 使用handle删除法：逐个删除匹配的规则
+    local deleted_count=0
     while true; do
         local handle=$(nft -a list table $family $table_name 2>/dev/null | \
             grep -E "(tcp|udp).*(dport|sport).*$search_pattern" | \
@@ -1304,7 +1327,8 @@ remove_nftables_rules() {
         fi
     done
 
-    # 删除计数�?    if is_port_range "$port"; then
+    # 删除计数器
+    if is_port_range "$port"; then
         local port_safe=$(echo "$port" | tr '-' '_')
         nft delete counter $family $table_name "port_${port_safe}_in" 2>/dev/null || true
         nft delete counter $family $table_name "port_${port_safe}_out" 2>/dev/null || true
@@ -1327,7 +1351,7 @@ set_port_bandwidth_limit() {
     fi
     echo
 
-    read -p "请选择要限制的端口（多端口使用逗号,分隔�?[1-${#active_ports[@]}]: " choice_input
+    read -p "请选择要限制的端口（多端口使用逗号,分隔） [1-${#active_ports[@]}]: " choice_input
 
     local valid_choices=()
     local ports_to_limit=()
@@ -1347,9 +1371,9 @@ set_port_bandwidth_limit() {
 
     echo
     local port_list=$(IFS=','; echo "${ports_to_limit[*]}")
-    echo "为端�?$port_list 设置带宽限制（速率控制�?"
-    echo "请输入限制值（0为无限制）（要带单位Kbps/Mbps/Gbps�?"
-    echo "(多端口排序分别限制使用逗号,分隔)(只输入一个值，应用到所有端�?:"
+    echo "为端口 $port_list 设置带宽限制（速率控制）:"
+    echo "请输入限制值（0为无限制）（要带单位Kbps/Mbps/Gbps）:"
+    echo "(多端口排序分别限制使用逗号,分隔)(只输入一个值，应用到所有端口):"
     read -p "带宽限制: " limit_input
 
     local LIMITS=()
@@ -1357,7 +1381,7 @@ set_port_bandwidth_limit() {
 
     expand_single_value_to_array LIMITS ${#ports_to_limit[@]}
     if [ ${#LIMITS[@]} -ne ${#ports_to_limit[@]} ]; then
-        echo -e "${RED}限制值数量与端口数量不匹�?{NC}"
+        echo -e "${RED}限制值数量与端口数量不匹配${NC}"
         sleep 2
         set_port_bandwidth_limit
         return
@@ -1372,7 +1396,7 @@ set_port_bandwidth_limit() {
             remove_tc_limit "$port"
             update_config ".ports.\"$port\".bandwidth_limit.enabled = false |
                 .ports.\"$port\".bandwidth_limit.rate = \"unlimited\""
-            echo -e "${GREEN}端口 $port 带宽限制已移�?{NC}"
+            echo -e "${GREEN}端口 $port 带宽限制已移除${NC}"
             success_count=$((success_count + 1))
             continue
         fi
@@ -1422,7 +1446,7 @@ set_port_quota_limit() {
     fi
     echo
 
-    read -p "请选择要设置配额的端口（多端口使用逗号,分隔�?[1-${#active_ports[@]}]: " choice_input
+    read -p "请选择要设置配额的端口（多端口使用逗号,分隔） [1-${#active_ports[@]}]: " choice_input
 
     local valid_choices=()
     local ports_to_quota=()
@@ -1443,9 +1467,9 @@ set_port_quota_limit() {
     echo
     local port_list=$(IFS=','; echo "${ports_to_quota[*]}")
     while true; do
-        echo "为端�?$port_list 设置流量配额（总量控制�?"
-        echo "请输入配额值（0为无限制）（要带单位MB/GB/T�?"
-        echo "(多端口分别配额使用逗号,分隔)(只输入一个值，应用到所有端�?:"
+        echo "为端口 $port_list 设置流量配额（总量控制）:"
+        echo "请输入配额值（0为无限制）（要带单位MB/GB/T）:"
+        echo "(多端口分别配额使用逗号,分隔)(只输入一个值，应用到所有端口):"
         read -p "流量配额(回车默认0): " quota_input
 
         if [ -z "$quota_input" ]; then
@@ -1465,13 +1489,13 @@ set_port_quota_limit() {
         done
 
         if [ "$all_valid" = false ]; then
-            echo "请重新输入配额�?
+            echo "请重新输入配额值"
             continue
         fi
 
         expand_single_value_to_array QUOTAS ${#ports_to_quota[@]}
         if [ ${#QUOTAS[@]} -ne ${#ports_to_quota[@]} ]; then
-            echo -e "${RED}配额值数量与端口数量不匹�?{NC}"
+            echo -e "${RED}配额值数量与端口数量不匹配${NC}"
             continue
         fi
 
@@ -1485,7 +1509,8 @@ set_port_quota_limit() {
 
         if [ "$quota" = "0" ] || [ -z "$quota" ]; then
             remove_nftables_quota "$port"
-            # 设为无限额时删除reset_day字段并清除定时任�?            jq ".ports.\"$port\".quota.enabled = true | 
+            # 设为无限额时删除reset_day字段并清除定时任务
+            jq ".ports.\"$port\".quota.enabled = true | 
                 .ports.\"$port\".quota.monthly_limit = \"unlimited\" | 
                 del(.ports.\"$port\".quota.reset_day)" "$CONFIG_FILE" > "${CONFIG_FILE}.tmp" && mv "${CONFIG_FILE}.tmp" "$CONFIG_FILE"
             remove_port_auto_reset_cron "$port"
@@ -1497,7 +1522,8 @@ set_port_quota_limit() {
         remove_nftables_quota "$port"
         apply_nftables_quota "$port" "$quota"
 
-        # 获取当前配额限制状�?        local current_monthly_limit=$(jq -r ".ports.\"$port\".quota.monthly_limit // \"unlimited\"" "$CONFIG_FILE")
+        # 获取当前配额限制状态
+        local current_monthly_limit=$(jq -r ".ports.\"$port\".quota.monthly_limit // \"unlimited\"" "$CONFIG_FILE")
         
         # 从无限额改为有限额时默认添加reset_day=1
         if [ "$current_monthly_limit" = "unlimited" ]; then
@@ -1524,10 +1550,10 @@ set_port_quota_limit() {
 
 manage_traffic_limits() {
     echo -e "${BLUE}=== 端口限制设置管理 ===${NC}"
-    echo "1. 设置端口带宽限制（速率控制�?
-    echo "2. 设置端口流量配额（总量控制�?
-    echo "3. 修改端口统计方式（双�?单向�?
-    echo "0. 返回主菜�?
+    echo "1. 设置端口带宽限制（速率控制）"
+    echo "2. 设置端口流量配额（总量控制）"
+    echo "3. 修改端口统计方式（双向/单向）"
+    echo "0. 返回主菜单"
     echo
     read -p "请选择操作 [0-3]: " choice
 
@@ -1540,12 +1566,13 @@ manage_traffic_limits() {
     esac
 }
 
-# 修改端口计费模式（流量数据不丢失�?change_port_billing_mode() {
+# 修改端口计费模式（流量数据不丢失）
+change_port_billing_mode() {
     echo -e "${BLUE}=== 修改端口统计方式 ===${NC}"
     
     local active_ports=$(jq -r '.ports | keys[]' "$CONFIG_FILE" 2>/dev/null | sort -n)
     if [ -z "$active_ports" ]; then
-        echo -e "${RED}没有正在监控的端�?{NC}"
+        echo -e "${RED}没有正在监控的端口${NC}"
         sleep 2
         manage_traffic_limits
         return
@@ -1610,24 +1637,28 @@ manage_traffic_limits() {
     local saved_output=${traffic_data[1]:-0}
     echo -e "  读取流量: 上行=$(format_bytes $saved_input), 下行=$(format_bytes $saved_output)"
     
-    # 删除旧规�?    remove_nftables_rules "$target_port"
+    # 删除旧规则
+    remove_nftables_rules "$target_port"
     
     # 更新配置
     local tmp_file=$(mktemp)
     jq ".ports.\"$target_port\".billing_mode = \"$new_mode\"" "$CONFIG_FILE" > "$tmp_file"
     mv "$tmp_file" "$CONFIG_FILE"
     
-    # 创建带初始值的计数器（复用灾备恢复函数�?    restore_counter_value "$target_port" "$saved_input" "$saved_output"
+    # 创建带初始值的计数器（复用灾备恢复函数）
+    restore_counter_value "$target_port" "$saved_input" "$saved_output"
     
-    # 添加规则（计数器已存在，会被复用�?    add_nftables_rules "$target_port"
+    # 添加规则（计数器已存在，会被复用）
+    add_nftables_rules "$target_port"
     
-    # 重新应用配额（apply_nftables_quota 会先删除旧配额对象再创建新的�?    local quota_enabled=$(jq -r ".ports.\"$target_port\".quota.enabled // false" "$CONFIG_FILE")
+    # 重新应用配额（apply_nftables_quota 会先删除旧配额对象再创建新的）
+    local quota_enabled=$(jq -r ".ports.\"$target_port\".quota.enabled // false" "$CONFIG_FILE")
     local quota_limit=$(jq -r ".ports.\"$target_port\".quota.monthly_limit // \"\"" "$CONFIG_FILE")
     if [ "$quota_enabled" = "true" ] && [ -n "$quota_limit" ] && [ "$quota_limit" != "null" ] && [ "$quota_limit" != "unlimited" ]; then
         apply_nftables_quota "$target_port" "$quota_limit"
     fi
     
-    echo -e "${GREEN}�?已应�?$new_display 模式，流量数据已保留${NC}"
+    echo -e "${GREEN}✓ 已应用 $new_display 模式，流量数据已保留${NC}"
     sleep 2
     
     change_port_billing_mode
@@ -1642,7 +1673,8 @@ apply_nftables_quota() {
 
     local quota_bytes=$(parse_size_to_bytes "$quota_limit")
 
-    # 使用当前流量作为配额初始值，避免重置后立即触发限�?    local current_traffic=($(get_port_traffic "$port"))
+    # 使用当前流量作为配额初始值，避免重置后立即触发限制
+    local current_traffic=($(get_port_traffic "$port"))
     local current_input=${current_traffic[0]}
     local current_output=${current_traffic[1]}
     local current_total=$(calculate_total_traffic "$current_input" "$current_output" "$billing_mode")
@@ -1719,12 +1751,14 @@ apply_nftables_quota() {
     fi
 }
 
-# 删除nftables配额限制 - 使用handle删除�?remove_nftables_quota() {
+# 删除nftables配额限制 - 使用handle删除法
+remove_nftables_quota() {
     local port=$1
     local table_name=$(jq -r '.nftables.table_name' "$CONFIG_FILE")
     local family=$(jq -r '.nftables.family' "$CONFIG_FILE")
 
-    # 检查是否为端口�?    if is_port_range "$port"; then
+    # 检查是否为端口段
+    if is_port_range "$port"; then
         local port_safe=$(echo "$port" | tr '-' '_')
         local quota_name="port_${port_safe}_quota"
     else
@@ -1778,19 +1812,22 @@ apply_tc_limit() {
     tc class add dev $interface parent 1:1 classid $class_id htb rate $total_limit ceil $total_limit burst $burst_size
 
     if is_port_range "$port"; then
-        # 端口段：使用fw分类器根据标记分�?        local mark_id=$(generate_port_range_mark "$port")
+        # 端口段：使用fw分类器根据标记分类
+        local mark_id=$(generate_port_range_mark "$port")
         tc filter add dev $interface protocol ip parent 1:0 prio 1 handle $mark_id fw flowid $class_id 2>/dev/null || true
 
     else
         # 单端口：使用u32精确匹配，避免优先级冲突
         local filter_prio=$((port % 1000 + 1))
 
-        # TCP协议过滤�?        tc filter add dev $interface protocol ip parent 1:0 prio $filter_prio u32 \
+        # TCP协议过滤器
+        tc filter add dev $interface protocol ip parent 1:0 prio $filter_prio u32 \
             match ip protocol 6 0xff match ip sport $port 0xffff flowid $class_id 2>/dev/null || true
         tc filter add dev $interface protocol ip parent 1:0 prio $filter_prio u32 \
             match ip protocol 6 0xff match ip dport $port 0xffff flowid $class_id 2>/dev/null || true
 
-        # UDP协议过滤�?        tc filter add dev $interface protocol ip parent 1:0 prio $((filter_prio + 1000)) u32 \
+        # UDP协议过滤器
+        tc filter add dev $interface protocol ip parent 1:0 prio $((filter_prio + 1000)) u32 \
             match ip protocol 17 0xff match ip sport $port 0xffff flowid $class_id 2>/dev/null || true
         tc filter add dev $interface protocol ip parent 1:0 prio $((filter_prio + 1000)) u32 \
             match ip protocol 17 0xff match ip dport $port 0xffff flowid $class_id 2>/dev/null || true
@@ -1814,7 +1851,8 @@ remove_tc_limit() {
         # 备选：十进制handle删除
         tc filter del dev $interface protocol ip parent 1:0 prio 1 handle $mark_id fw 2>/dev/null || true
     else
-        # 单端口：删除u32精确匹配过滤�?        local filter_prio=$((port % 1000 + 1))
+        # 单端口：删除u32精确匹配过滤器
+        local filter_prio=$((port % 1000 + 1))
 
         tc filter del dev $interface protocol ip parent 1:0 prio $filter_prio u32 \
             match ip protocol 6 0xff match ip sport $port 0xffff 2>/dev/null || true
@@ -1834,7 +1872,7 @@ manage_traffic_reset() {
     echo -e "${BLUE}流量重置管理${NC}"
     echo "1. 重置流量月重置日设置"
     echo "2. 立即重置"
-    echo "0. 返回主菜�?
+    echo "0. 返回主菜单"
     echo
     read -p "请选择操作 [0-2]: " choice
 
@@ -1859,7 +1897,7 @@ set_reset_day() {
     fi
     echo
 
-    read -p "请选择要设置重置日期的端口（多端口使用逗号,分隔�?[1-${#active_ports[@]}]: " choice_input
+    read -p "请选择要设置重置日期的端口（多端口使用逗号,分隔） [1-${#active_ports[@]}]: " choice_input
 
     local valid_choices=()
     local ports_to_set=()
@@ -1879,9 +1917,9 @@ set_reset_day() {
 
     echo
     local port_list=$(IFS=','; echo "${ports_to_set[*]}")
-    echo "为端�?$port_list 设置月重置日�?"
-    echo "请输入月重置日（多端口使用逗号,分隔�?0代表不重�?:"
-    echo "(只输入一个值，应用到所有端�?:"
+    echo "为端口 $port_list 设置月重置日期:"
+    echo "请输入月重置日（多端口使用逗号,分隔）(0代表不重置):"
+    echo "(只输入一个值，应用到所有端口):"
     read -p "月重置日 [0-31]: " reset_day_input
 
     local RESET_DAYS=()
@@ -1901,25 +1939,26 @@ set_reset_day() {
         local reset_day=$(echo "${RESET_DAYS[$i]}" | tr -d ' ')
 
         if ! [[ "$reset_day" =~ ^[0-9]+$ ]] || [ "$reset_day" -lt 0 ] || [ "$reset_day" -gt 31 ]; then
-            echo -e "${RED}端口 $port 重置日期无效: $reset_day，必须是0-31之间的数�?{NC}"
+            echo -e "${RED}端口 $port 重置日期无效: $reset_day，必须是0-31之间的数字${NC}"
             continue
         fi
 
         if [ "$reset_day" = "0" ]; then
-            # 删除reset_day字段并移除定时任�?            jq "del(.ports.\"$port\".quota.reset_day)" "$CONFIG_FILE" > "${CONFIG_FILE}.tmp" && mv "${CONFIG_FILE}.tmp" "$CONFIG_FILE"
+            # 删除reset_day字段并移除定时任务
+            jq "del(.ports.\"$port\".quota.reset_day)" "$CONFIG_FILE" > "${CONFIG_FILE}.tmp" && mv "${CONFIG_FILE}.tmp" "$CONFIG_FILE"
             remove_port_auto_reset_cron "$port"
-            echo -e "${GREEN}端口 $port 已取消自动重�?{NC}"
+            echo -e "${GREEN}端口 $port 已取消自动重置${NC}"
         else
             update_config ".ports.\"$port\".quota.reset_day = $reset_day"
             setup_port_auto_reset_cron "$port"
-            echo -e "${GREEN}端口 $port 月重置日设置成功: 每月${reset_day}�?{NC}"
+            echo -e "${GREEN}端口 $port 月重置日设置成功: 每月${reset_day}日${NC}"
         fi
         
         success_count=$((success_count + 1))
     done
 
     echo
-    echo -e "${GREEN}成功设置 $success_count 个端口的月重置日�?{NC}"
+    echo -e "${GREEN}成功设置 $success_count 个端口的月重置日期${NC}"
 
     sleep 2
     manage_traffic_reset
@@ -1938,7 +1977,7 @@ immediate_reset() {
     fi
     echo
 
-    read -p "请选择要立即重置的端口（多端口使用逗号,分隔�?[1-${#active_ports[@]}]: " choice_input
+    read -p "请选择要立即重置的端口（多端口使用逗号,分隔） [1-${#active_ports[@]}]: " choice_input
 
     # 处理多选择输入
     local valid_choices=()
@@ -1975,8 +2014,8 @@ immediate_reset() {
 
     echo
     echo "总计流量: $(format_bytes $total_all_traffic)"
-    echo -e "${YELLOW}警告：重置后流量统计将清零，此操作不可撤销�?{NC}"
-    read -p "确认重置选定端口的流量统�? [y/N]: " confirm
+    echo -e "${YELLOW}警告：重置后流量统计将清零，此操作不可撤销！${NC}"
+    read -p "确认重置选定端口的流量统计? [y/N]: " confirm
 
     if [[ "$confirm" =~ ^[Yy]$ ]]; then
         local reset_count=0
@@ -1997,7 +2036,7 @@ immediate_reset() {
 
         echo
         echo -e "${GREEN}成功重置 $reset_count 个端口的流量统计${NC}"
-        echo "重置前总流�? $(format_bytes $total_all_traffic)"
+        echo "重置前总流量: $(format_bytes $total_all_traffic)"
     else
         echo "取消重置"
     fi
@@ -2006,7 +2045,8 @@ immediate_reset() {
     manage_traffic_reset
 }
 
-# 自动重置指定端口的流�?auto_reset_port() {
+# 自动重置指定端口的流量
+auto_reset_port() {
     local port="$1"
 
     local traffic_data=($(get_port_traffic "$port"))
@@ -2051,7 +2091,8 @@ record_reset_history() {
 
     echo "$timestamp|$port|$traffic_bytes" >> "$history_file"
 
-    # 限制历史记录条数，避免文件过�?    if [ $(wc -l < "$history_file" 2>/dev/null || echo 0) -gt 100 ]; then
+    # 限制历史记录条数，避免文件过大
+    if [ $(wc -l < "$history_file" 2>/dev/null || echo 0) -gt 100 ]; then
         tail -n 100 "$history_file" > "${history_file}.tmp"
         mv "${history_file}.tmp" "$history_file"
     fi
@@ -2061,8 +2102,8 @@ manage_configuration() {
     echo -e "${BLUE}=== 配置文件管理 ===${NC}"
     echo
     echo "请选择操作:"
-    echo "1. 导出配置�?
-    echo "2. 导入配置�?
+    echo "1. 导出配置包"
+    echo "2. 导入配置包"
     echo "0. 返回上级菜单"
     echo
     read -p "请输入选择 [0-2]: " choice
@@ -2076,10 +2117,11 @@ manage_configuration() {
 }
 
 export_config() {
-    echo -e "${BLUE}=== 导出配置�?===${NC}"
+    echo -e "${BLUE}=== 导出配置包 ===${NC}"
     echo
 
-    # 检查配置目录是否存�?    if [ ! -d "$CONFIG_DIR" ]; then
+    # 检查配置目录是否存在
+    if [ ! -d "$CONFIG_DIR" ]; then
         echo -e "${RED}错误：配置目录不存在${NC}"
         sleep 2
         manage_configuration
@@ -2091,9 +2133,9 @@ export_config() {
     local backup_name="port-traffic-dog-config-${timestamp}.tar.gz"
     local backup_path="/root/${backup_name}"
 
-    echo "正在导出配置�?.."
-    echo "包含内容�?
-    echo "  - 主配置文�?(config.json)"
+    echo "正在导出配置包..."
+    echo "包含内容："
+    echo "  - 主配置文件 (config.json)"
     echo "  - 端口监控数据"
     echo "  - 通知配置"
     echo "  - 日志文件"
@@ -2103,7 +2145,8 @@ export_config() {
     local temp_dir=$(mktemp -d)
     local package_dir="$temp_dir/port-traffic-dog-config"
 
-    # 复制配置目录到临时位�?    cp -r "$CONFIG_DIR" "$package_dir"
+    # 复制配置目录到临时位置
+    cp -r "$CONFIG_DIR" "$package_dir"
 
     # 生成端口流量狗配置包信息文件
     cat > "$package_dir/package_info.txt" << EOF
@@ -2112,7 +2155,7 @@ export_config() {
 脚本版本: $SCRIPT_VERSION
 配置目录: $CONFIG_DIR
 导出主机: $(hostname)
-包含端口: $(jq -r '.ports | keys | join(", ")' "$CONFIG_FILE" 2>/dev/null || echo "�?)
+包含端口: $(jq -r '.ports | keys | join(", ")' "$CONFIG_FILE" 2>/dev/null || echo "无")
 EOF
 
     # 打包配置
@@ -2124,14 +2167,14 @@ EOF
 
     if [ -f "$backup_path" ]; then
         local file_size=$(du -h "$backup_path" | cut -f1)
-        echo -e "${GREEN}配置包导出成�?{NC}"
+        echo -e "${GREEN}配置包导出成功${NC}"
         echo
-        echo "文件信息�?
-        echo "  文件�? $backup_name"
+        echo "文件信息："
+        echo "  文件名: $backup_name"
         echo "  路径: $backup_path"
         echo "  大小: $file_size"
     else
-        echo -e "${RED}配置包导出失�?{NC}"
+        echo -e "${RED}配置包导出失败${NC}"
     fi
 
     echo
@@ -2139,55 +2182,62 @@ EOF
     manage_configuration
 }
 
-# 导入配置�?import_config() {
-    echo -e "${BLUE}=== 导入配置�?===${NC}"
+# 导入配置包
+import_config() {
+    echo -e "${BLUE}=== 导入配置包 ===${NC}"
     echo
 
-    echo "请输入配置包路径 (支持绝对路径或相对路�?:"
+    echo "请输入配置包路径 (支持绝对路径或相对路径):"
     echo "例如: /root/port-traffic-dog-config-20241227-143022.tar.gz"
     echo
-    read -p "配置包路�? " package_path
+    read -p "配置包路径: " package_path
 
-    # 检查输入是否为�?    if [ -z "$package_path" ]; then
-        echo -e "${RED}错误：路径不能为�?{NC}"
+    # 检查输入是否为空
+    if [ -z "$package_path" ]; then
+        echo -e "${RED}错误：路径不能为空${NC}"
         sleep 2
         import_config
         return
     fi
 
-    # 检查文件是否存�?    if [ ! -f "$package_path" ]; then
-        echo -e "${RED}错误：配置包文件不存�?{NC}"
+    # 检查文件是否存在
+    if [ ! -f "$package_path" ]; then
+        echo -e "${RED}错误：配置包文件不存在${NC}"
         echo "路径: $package_path"
         sleep 2
         import_config
         return
     fi
 
-    # 检查文件格�?    if [[ ! "$package_path" =~ \.tar\.gz$ ]]; then
-        echo -e "${RED}错误：配置包必须�?.tar.gz 格式${NC}"
+    # 检查文件格式
+    if [[ ! "$package_path" =~ \.tar\.gz$ ]]; then
+        echo -e "${RED}错误：配置包必须是 .tar.gz 格式${NC}"
         sleep 2
         import_config
         return
     fi
 
     echo
-    echo "正在验证配置�?.."
+    echo "正在验证配置包..."
 
     # 创建临时目录用于解压验证
     local temp_dir=$(mktemp -d)
 
-    # 解压到临时目录进行验�?    cd "$temp_dir"
+    # 解压到临时目录进行验证
+    cd "$temp_dir"
     if ! tar -tzf "$package_path" >/dev/null 2>&1; then
-        echo -e "${RED}错误：配置包文件损坏或格式错�?{NC}"
+        echo -e "${RED}错误：配置包文件损坏或格式错误${NC}"
         rm -rf "$temp_dir"
         sleep 2
         import_config
         return
     fi
 
-    # 解压配置�?    tar -xzf "$package_path" 2>/dev/null
+    # 解压配置包
+    tar -xzf "$package_path" 2>/dev/null
 
-    # 验证配置包结�?    local config_dir_name=$(ls | head -n1)
+    # 验证配置包结构
+    local config_dir_name=$(ls | head -n1)
     if [ ! -d "$config_dir_name" ]; then
         echo -e "${RED}错误：配置包结构异常${NC}"
         rm -rf "$temp_dir"
@@ -2198,8 +2248,9 @@ EOF
 
     local extracted_config="$temp_dir/$config_dir_name"
 
-    # 检查必要文�?    if [ ! -f "$extracted_config/config.json" ]; then
-        echo -e "${RED}错误：配置包中缺�?config.json 文件${NC}"
+    # 检查必要文件
+    if [ ! -f "$extracted_config/config.json" ]; then
+        echo -e "${RED}错误：配置包中缺少 config.json 文件${NC}"
         rm -rf "$temp_dir"
         sleep 2
         import_config
@@ -2211,22 +2262,23 @@ EOF
     echo
 
     if [ -f "$extracted_config/package_info.txt" ]; then
-        echo -e "${GREEN}端口流量狗配置包信息�?{NC}"
+        echo -e "${GREEN}端口流量狗配置包信息：${NC}"
         cat "$extracted_config/package_info.txt"
         echo
     fi
 
-    # 显示将要导入的端�?    local import_ports=$(jq -r '.ports | keys | join(", ")' "$extracted_config/config.json" 2>/dev/null || echo "�?)
+    # 显示将要导入的端口
+    local import_ports=$(jq -r '.ports | keys | join(", ")' "$extracted_config/config.json" 2>/dev/null || echo "无")
     echo "包含端口: $import_ports"
     echo
 
     # 确认导入
     echo -e "${YELLOW}警告：导入配置将会：${NC}"
-    echo "  1. 停止当前所有端口监�?
-    echo "  2. 替换为新的配�?
+    echo "  1. 停止当前所有端口监控"
+    echo "  2. 替换为新的配置"
     echo "  3. 重新应用监控规则"
     echo
-    read -p "确认导入配置�? [y/N]: " confirm
+    read -p "确认导入配置包? [y/N]: " confirm
 
     if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
         echo "取消导入"
@@ -2237,7 +2289,7 @@ EOF
     fi
 
     echo
-    echo "开始导入配�?.."
+    echo "开始导入配置..."
 
     # 1. 停止当前监控
     echo "正在停止当前端口监控..."
@@ -2248,7 +2300,7 @@ EOF
     done
 
     # 2. 替换配置
-    echo "正在导入新配�?.."
+    echo "正在导入新配置..."
     rm -rf "$CONFIG_DIR" 2>/dev/null || true
     mkdir -p "$(dirname "$CONFIG_DIR")"
     cp -r "$extracted_config" "$CONFIG_DIR"
@@ -2259,18 +2311,21 @@ EOF
     # 重新初始化nftables
     init_nftables
 
-    # 为每个端口重新应用规�?    local new_ports=($(get_active_ports))
+    # 为每个端口重新应用规则
+    local new_ports=($(get_active_ports))
     for port in "${new_ports[@]}"; do
         # 添加基础监控规则
         add_nftables_rules "$port"
 
-        # 应用配额限制（如果有�?        local quota_enabled=$(jq -r ".ports.\"$port\".quota.enabled // false" "$CONFIG_FILE")
+        # 应用配额限制（如果有）
+        local quota_enabled=$(jq -r ".ports.\"$port\".quota.enabled // false" "$CONFIG_FILE")
         local monthly_limit=$(jq -r ".ports.\"$port\".quota.monthly_limit // \"unlimited\"" "$CONFIG_FILE")
         if [ "$quota_enabled" = "true" ] && [ "$monthly_limit" != "unlimited" ]; then
             apply_nftables_quota "$port" "$monthly_limit"
         fi
 
-        # 应用带宽限制（如果有�?        local limit_enabled=$(jq -r ".ports.\"$port\".bandwidth_limit.enabled // false" "$CONFIG_FILE")
+        # 应用带宽限制（如果有）
+        local limit_enabled=$(jq -r ".ports.\"$port\".bandwidth_limit.enabled // false" "$CONFIG_FILE")
         local rate_limit=$(jq -r ".ports.\"$port\".bandwidth_limit.rate // \"unlimited\"" "$CONFIG_FILE")
         if [ "$limit_enabled" = "true" ] && [ "$rate_limit" != "unlimited" ]; then
             local limit_lower=$(echo "$rate_limit" | tr '[:upper:]' '[:lower:]')
@@ -2296,16 +2351,16 @@ EOF
     echo
     echo -e "${GREEN}配置导入完成${NC}"
     echo
-    echo "导入结果�?
-    echo "  导入端口�? ${#new_ports[@]} �?
+    echo "导入结果："
+    echo "  导入端口数: ${#new_ports[@]} 个"
     if [ ${#new_ports[@]} -gt 0 ]; then
         echo "  端口列表: $(IFS=','; echo "${new_ports[*]}")"
     fi
     echo
-    echo -e "${YELLOW}提示�?{NC}"
+    echo -e "${YELLOW}提示：${NC}"
     echo "  - 所有端口监控规则已重新应用"
-    echo "  - 通知配置已恢�?
-    echo "  - 历史数据已恢�?
+    echo "  - 通知配置已恢复"
+    echo "  - 历史数据已恢复"
 
     echo
     read -p "按回车键返回..."
@@ -2334,7 +2389,8 @@ download_notification_modules() {
     local temp_dir=$(mktemp -d)
     local repo_url="https://github.com/zywe03/realm-xwPF/archive/refs/heads/main.zip"
 
-    # 下载解压复制清理：每次都覆盖更新确保版本一�?    if download_with_sources "$repo_url" "$temp_dir/repo.zip" &&
+    # 下载解压复制清理：每次都覆盖更新确保版本一致
+    if download_with_sources "$repo_url" "$temp_dir/repo.zip" &&
        (cd "$temp_dir" && unzip -q repo.zip) &&
        rm -rf "$notifications_dir" &&
        cp -r "$temp_dir/realm-xwPF-main/notifications" "$notifications_dir" &&
@@ -2352,15 +2408,15 @@ install_update_script() {
     echo -e "${BLUE}安装依赖(更新)脚本${NC}"
     echo "────────────────────────────────────────────────────────"
 
-    echo -e "${YELLOW}正在检查系统依�?..${NC}"
+    echo -e "${YELLOW}正在检查系统依赖...${NC}"
     check_dependencies true
 
-    echo -e "${YELLOW}正在下载最新版�?..${NC}"
+    echo -e "${YELLOW}正在下载最新版本...${NC}"
 
     local temp_file=$(mktemp)
 
     if download_with_sources "$SCRIPT_URL" "$temp_file"; then
-        if [ -s "$temp_file" ] && grep -q "端口流量�? "$temp_file" 2>/dev/null; then
+        if [ -s "$temp_file" ] && grep -q "端口流量狗" "$temp_file" 2>/dev/null; then
             mv "$temp_file" "$SCRIPT_PATH"
             chmod +x "$SCRIPT_PATH"
 
@@ -2369,15 +2425,15 @@ install_update_script() {
             echo -e "${YELLOW}正在更新通知模块...${NC}"
             download_notification_modules >/dev/null 2>&1 || true
 
-            echo -e "${GREEN}依赖检查完�?{NC}"
+            echo -e "${GREEN}依赖检查完成${NC}"
             echo -e "${GREEN}脚本更新完成${NC}"
-            echo -e "${GREEN}通知模块已更�?{NC}"
+            echo -e "${GREEN}通知模块已更新${NC}"
         else
             echo -e "${RED} 下载文件验证失败${NC}"
             rm -f "$temp_file"
         fi
     else
-        echo -e "${RED} 下载失败，请检查网络连�?{NC}"
+        echo -e "${RED} 下载失败，请检查网络连接${NC}"
         rm -f "$temp_file"
     fi
 
@@ -2433,7 +2489,7 @@ uninstall_script() {
         rm -f "/usr/local/bin/$SHORTCUT_COMMAND" 2>/dev/null || true
         rm -f "$SCRIPT_PATH" 2>/dev/null || true
 
-        echo -e "${GREEN}卸载完成�?{NC}"
+        echo -e "${GREEN}卸载完成！${NC}"
         echo -e "${YELLOW}感谢使用端口流量狗！${NC}"
         exit 0
     else
@@ -2448,14 +2504,14 @@ manage_notifications() {
     echo "1. Telegram机器人通知"
     echo "2. 邮箱通知 [敬请期待]"
     echo "3. 企业wx 机器人通知"
-    echo "0. 返回主菜�?
+    echo "0. 返回主菜单"
     echo
     read -p "请选择操作 [0-3]: " choice
 
     case $choice in
         1) manage_telegram_notifications ;;
         2)
-            echo -e "${YELLOW}预留的邮箱通知功能(画饼�?${NC}"
+            echo -e "${YELLOW}预留的邮箱通知功能(画饼的)${NC}"
             sleep 2
             manage_notifications
             ;;
@@ -2469,13 +2525,14 @@ manage_telegram_notifications() {
     local telegram_script="$CONFIG_DIR/notifications/telegram.sh"
 
     if [ -f "$telegram_script" ]; then
-        # 导出通知管理函数供模块使�?        export_notification_functions
+        # 导出通知管理函数供模块使用
+        export_notification_functions
         source "$telegram_script"
         telegram_configure
         manage_notifications
     else
-        echo -e "${RED}Telegram 通知模块不存�?{NC}"
-        echo "请检查文�? $telegram_script"
+        echo -e "${RED}Telegram 通知模块不存在${NC}"
+        echo "请检查文件: $telegram_script"
         sleep 2
         manage_notifications
     fi
@@ -2485,13 +2542,14 @@ manage_wecom_notifications() {
     local wecom_script="$CONFIG_DIR/notifications/wecom.sh"
 
     if [ -f "$wecom_script" ]; then
-        # 导出通知管理函数供模块使�?        export_notification_functions
+        # 导出通知管理函数供模块使用
+        export_notification_functions
         source "$wecom_script"
         wecom_configure
         manage_notifications
     else
-        echo -e "${RED}企业wx 通知模块不存�?{NC}"
-        echo "请检查文�? $wecom_script"
+        echo -e "${RED}企业wx 通知模块不存在${NC}"
+        echo "请检查文件: $wecom_script"
         sleep 2
         manage_notifications
     fi
@@ -2551,7 +2609,7 @@ setup_wecom_notification_cron() {
 # 通用间隔选择函数
 select_notification_interval() {
     # 显示选择菜单到stderr，避免被变量捕获
-    echo "请选择状态通知发送间�?" >&2
+    echo "请选择状态通知发送间隔:" >&2
     echo "1. 1分钟   2. 15分钟  3. 30分钟  4. 1小时" >&2
     echo "5. 2小时   6. 6小时   7. 12小时  8. 24小时" >&2
     read -p "请选择(回车默认1小时) [1-8]: " interval_choice >&2
@@ -2599,7 +2657,7 @@ setup_port_auto_reset_cron() {
     local temp_cron=$(mktemp)
 
     # 保留现有任务，移除该端口的旧任务
-    crontab -l 2>/dev/null | grep -v "端口流量狗自动重置端�?port" | grep -v "port-traffic-dog.*--reset-port $port" > "$temp_cron" || true
+    crontab -l 2>/dev/null | grep -v "端口流量狗自动重置端口$port" | grep -v "port-traffic-dog.*--reset-port $port" > "$temp_cron" || true
 
     local quota_enabled=$(jq -r ".ports.\"$port\".quota.enabled // true" "$CONFIG_FILE")
     local monthly_limit=$(jq -r ".ports.\"$port\".quota.monthly_limit // \"unlimited\"" "$CONFIG_FILE")
@@ -2608,7 +2666,7 @@ setup_port_auto_reset_cron() {
     # 只有quota启用、monthly_limit不是unlimited、且reset_day存在时才添加cron任务
     if [ "$quota_enabled" = "true" ] && [ "$monthly_limit" != "unlimited" ] && [ "$reset_day_raw" != "null" ]; then
         local reset_day="${reset_day_raw:-1}"
-        echo "5 0 $reset_day * * $script_path --reset-port $port >/dev/null 2>&1  # 端口流量狗自动重置端�?port" >> "$temp_cron"
+        echo "5 0 $reset_day * * $script_path --reset-port $port >/dev/null 2>&1  # 端口流量狗自动重置端口$port" >> "$temp_cron"
     fi
 
     crontab "$temp_cron"
@@ -2619,33 +2677,36 @@ remove_port_auto_reset_cron() {
     local port="$1"
     local temp_cron=$(mktemp)
 
-    crontab -l 2>/dev/null | grep -v "端口流量狗自动重置端�?port" | grep -v "port-traffic-dog.*--reset-port $port" > "$temp_cron" || true
+    crontab -l 2>/dev/null | grep -v "端口流量狗自动重置端口$port" | grep -v "port-traffic-dog.*--reset-port $port" > "$temp_cron" || true
 
     crontab "$temp_cron"
     rm -f "$temp_cron"
 }
 
-# 格式化状态消息（HTML格式�?format_status_message() {
-    local server_name="${1:-$(hostname)}"  # 接受服务器名称参�?    local timestamp=$(get_beijing_time '+%Y-%m-%d %H:%M:%S')
+# 格式化状态消息（HTML格式）
+format_status_message() {
+    local server_name="${1:-$(hostname)}"  # 接受服务器名称参数
+    local timestamp=$(get_beijing_time '+%Y-%m-%d %H:%M:%S')
     local notification_icon="🔔"
     local active_ports=($(get_active_ports))
     local port_count=${#active_ports[@]}
     local daily_total=$(get_daily_total_traffic)
 
-    local message="<b>${notification_icon} 端口流量�?v${SCRIPT_VERSION}</b> | �?${timestamp}
-介绍主页:<code>https://zywe.de</code> | 项目开�?<code>https://github.com/zywe03/realm-xwPF</code>
-一只轻巧的'守护�?，时刻守护你的端口流�?| 快捷命令: dog
+    local message="<b>${notification_icon} 端口流量狗 v${SCRIPT_VERSION}</b> | ⏰ ${timestamp}
+介绍主页:<code>https://zywe.de</code> | 项目开源:<code>https://github.com/zywe03/realm-xwPF</code>
+一只轻巧的'守护犬'，时刻守护你的端口流量 | 快捷命令: dog
 ---
-状�? 监控�?| 守护端口: ${port_count}�?| 端口总流�? ${daily_total}
+状态: 监控中 | 守护端口: ${port_count}个 | 端口总流量: ${daily_total}
 ────────────────────────────────────────
 <pre>$(format_port_list "message")</pre>
 ────────────────────────────────────────
-🔗 服务�? <i>${server_name}</i>"
+🔗 服务器: <i>${server_name}</i>"
 
     echo "$message"
 }
 
-# 格式化状态消息（纯文本text格式�?format_text_status_message() {
+# 格式化状态消息（纯文本text格式）
+format_text_status_message() {
     local server_name="${1:-$(hostname)}"
     local timestamp=$(get_beijing_time '+%Y-%m-%d %H:%M:%S')
     local notification_icon="🔔"
@@ -2653,20 +2714,21 @@ remove_port_auto_reset_cron() {
     local port_count=${#active_ports[@]}
     local daily_total=$(get_daily_total_traffic)
 
-    local message="${notification_icon} 端口流量�?v${SCRIPT_VERSION} | �?${timestamp}
-介绍主页: https://zywe.de | 项目开�? https://github.com/zywe03/realm-xwPF
-一只轻巧的'守护�?，时刻守护你的端口流�?| 快捷命令: dog
+    local message="${notification_icon} 端口流量狗 v${SCRIPT_VERSION} | ⏰ ${timestamp}
+介绍主页: https://zywe.de | 项目开源: https://github.com/zywe03/realm-xwPF
+一只轻巧的'守护犬'，时刻守护你的端口流量 | 快捷命令: dog
 ---
-状�? 监控�?| 守护端口: ${port_count}�?| 端口总流�? ${daily_total}
+状态: 监控中 | 守护端口: ${port_count}个 | 端口总流量: ${daily_total}
 ────────────────────────────────────────
 $(format_port_list "message")
 ────────────────────────────────────────
-🔗 服务�? ${server_name}"
+🔗 服务器: ${server_name}"
 
     echo "$message"
 }
 
-# 格式化状态消息（Markdown格式�?format_markdown_status_message() {
+# 格式化状态消息（Markdown格式）
+format_markdown_status_message() {
     local server_name="${1:-$(hostname)}"
     local timestamp=$(get_beijing_time '+%Y-%m-%d %H:%M:%S')
     local notification_icon="🔔"
@@ -2674,15 +2736,15 @@ $(format_port_list "message")
     local port_count=${#active_ports[@]}
     local daily_total=$(get_daily_total_traffic)
 
-    local message="**${notification_icon} 端口流量�?v${SCRIPT_VERSION}** | �?${timestamp}
-介绍主页: \`https://zywe.de\` | 项目开�? \`https://github.com/zywe03/realm-xwPF\`
-一只轻巧的'守护�?，时刻守护你的端口流�?| 快捷命令: dog
+    local message="**${notification_icon} 端口流量狗 v${SCRIPT_VERSION}** | ⏰ ${timestamp}
+介绍主页: \`https://zywe.de\` | 项目开源: \`https://github.com/zywe03/realm-xwPF\`
+一只轻巧的'守护犬'，时刻守护你的端口流量 | 快捷命令: dog
 ---
-**状�?*: 监控�?| **守护端口**: ${port_count}�?| **端口总流�?*: ${daily_total}
+**状态**: 监控中 | **守护端口**: ${port_count}个 | **端口总流量**: ${daily_total}
 ────────────────────────────────────────
 $(format_port_list "markdown")
 ────────────────────────────────────────
-🔗 **服务�?*: ${server_name}"
+🔗 **服务器**: ${server_name}"
 
     echo "$message"
 }
@@ -2697,13 +2759,15 @@ log_notification() {
 
     echo "[$timestamp] $message" >> "$log_file"
 
-    # 日志轮转：防止日志文件过�?    if [ -f "$log_file" ] && [ $(wc -l < "$log_file") -gt 1000 ]; then
+    # 日志轮转：防止日志文件过大
+    if [ -f "$log_file" ] && [ $(wc -l < "$log_file") -gt 1000 ]; then
         tail -n 500 "$log_file" > "${log_file}.tmp"
         mv "${log_file}.tmp" "$log_file"
     fi
 }
 
-# 通用状态通知发送函�?send_status_notification() {
+# 通用状态通知发送函数
+send_status_notification() {
     local success_count=0
     local total_count=0
 
@@ -2728,14 +2792,14 @@ log_notification() {
     fi
 
     if [ $total_count -eq 0 ]; then
-        log_notification "通知模块不存�?
-        echo -e "${RED}通知模块不存�?{NC}"
+        log_notification "通知模块不存在"
+        echo -e "${RED}通知模块不存在${NC}"
         return 1
     elif [ $success_count -gt 0 ]; then
-        echo -e "${GREEN}状态通知发送成�?($success_count/$total_count)${NC}"
+        echo -e "${GREEN}状态通知发送成功 ($success_count/$total_count)${NC}"
         return 0
     else
-        echo -e "${RED}状态通知发送失�?{NC}"
+        echo -e "${RED}状态通知发送失败${NC}"
         return 1
     fi
 }
@@ -2756,7 +2820,7 @@ main() {
             --version)
                 echo -e "${BLUE}$SCRIPT_NAME v$SCRIPT_VERSION${NC}"
                 echo -e "${GREEN}介绍主页:${NC} https://zywe.de"
-                echo -e "${GREEN}项目开�?${NC} https://github.com/zywe03/realm-xwPF"
+                echo -e "${GREEN}项目开源:${NC} https://github.com/zywe03/realm-xwPF"
                 exit 0
                 ;;
             --install)
@@ -2789,7 +2853,7 @@ main() {
                 ;;
             --reset-port)
                 if [ $# -lt 2 ]; then
-                    echo -e "${RED}错误�?-reset-port 需要指定端口号${NC}"
+                    echo -e "${RED}错误：--reset-port 需要指定端口号${NC}"
                     exit 1
                 fi
                 auto_reset_port "$2"
@@ -2798,7 +2862,7 @@ main() {
             *)
                 echo -e "${YELLOW}用法: $0 [选项]${NC}"
                 echo "选项:"
-                echo "  --check-deps              检查依赖工�?
+                echo "  --check-deps              检查依赖工具"
                 echo "  --version                 显示版本信息"
                 echo "  --install                 安装/更新脚本"
                 echo "  --uninstall               卸载脚本"

@@ -23,14 +23,14 @@ RESET="\e[0m"
 
 check_root() {
   if [ "$EUID" -ne 0 ]; then
-    echo -e "${RED}请以 root 用户运行此脚本�?{RESET}"
+    echo -e "${RED}请以 root 用户运行此脚本。${RESET}"
     exit 1
   fi
 }
 
 need_cmd() {
   command -v "$1" >/dev/null 2>&1 || {
-    echo -e "${RED}缺少依赖命令�?1，请先安装�?{RESET}"
+    echo -e "${RED}缺少依赖命令：$1，请先安装。${RESET}"
     exit 1
   }
 }
@@ -41,7 +41,7 @@ is_installed() {
 
 require_installed() {
   if ! is_installed; then
-    echo -e "${RED}Realm 未安装，请先选择 1 安装�?{RESET}"
+    echo -e "${RED}Realm 未安装，请先选择 1 安装。${RESET}"
     return 1
   fi
   return 0
@@ -69,7 +69,7 @@ validate_name() {
     printf "%s" "$name" | iconv -f UTF-8 -t UTF-8 >/dev/null 2>&1 || return 1
   fi
   if printf "%s" "$name" | LC_ALL=C awk '{for(i=1;i<=length($0);i++){c=substr($0,i,1);if(c~/[[:cntrl:]]/)exit 1}exit 0}'; then :; else return 1; fi
-  printf "%s" "$name" | awk 'BEGIN{ok=1}{if($0~/[^0-9A-Za-z_一-�?]/)ok=0}END{exit ok?0:1}' || return 1
+  printf "%s" "$name" | awk 'BEGIN{ok=1}{if($0~/[^0-9A-Za-z_一-龥-]/)ok=0}END{exit ok?0:1}' || return 1
   return 0
 }
 
@@ -84,10 +84,10 @@ restart_realm_silent() {
 
 restart_realm_verbose() {
   systemctl restart realm
-  echo -e "${GREEN}Realm 已重启�?{RESET}"
+  echo -e "${GREEN}Realm 已重启。${RESET}"
   if [ -f "$PANEL_SERVICE_FILE" ]; then
       systemctl restart realm-panel
-      echo -e "${GREEN}Realm 面板已重启�?{RESET}"
+      echo -e "${GREEN}Realm 面板已重启。${RESET}"
   fi
 }
 
@@ -100,16 +100,16 @@ get_realm_version_short() {
 
 get_status_line() {
   if ! is_installed; then
-    echo -e "状态：${YELLOW}未安�?{RESET}"
+    echo -e "状态：${YELLOW}未安装${RESET}"
     return
   fi
   local status ver
   status="$(systemctl is-active realm 2>/dev/null || true)"
   ver="$(get_realm_version_short)"
   if [ "$status" = "active" ]; then
-    echo -e "状态：${GREEN}运行�?{RESET}  |  版本�?{GREEN}${ver}${RESET}"
+    echo -e "状态：${GREEN}运行中${RESET}  |  版本：${GREEN}${ver}${RESET}"
   else
-    echo -e "状态：${RED}未运�?{RESET}  |  版本�?{GREEN}${ver}${RESET}"
+    echo -e "状态：${RED}未运行${RESET}  |  版本：${GREEN}${ver}${RESET}"
   fi
 }
 
@@ -180,15 +180,15 @@ EOF
   libc="$(get_libc)"
   file="$(get_realm_filename)"
   if [ "$arch" = "unsupported" ] || [ -z "$file" ]; then
-    echo -e "${RED}不支持的架构�?(uname -m)${RESET}"
+    echo -e "${RED}不支持的架构：$(uname -m)${RESET}"
     exit 1
   fi
   url="$(get_latest_realm_url || true)"
   if [ -z "$url" ]; then
-    echo -e "${RED}获取 Realm 最新版本下载地址失败�?{RESET}"
+    echo -e "${RED}获取 Realm 最新版本下载地址失败。${RESET}"
     exit 1
   fi
-  echo -e "${GREEN}检测到架构�?arch  libc�?libc${RESET}"
+  echo -e "${GREEN}检测到架构：$arch  libc：$libc${RESET}"
   echo -e "${GREEN}将下载：$file${RESET}"
   mkdir -p "$TMP_DIR"
   cd "$TMP_DIR" || exit 1
@@ -196,7 +196,7 @@ EOF
   curl -L -o realm.tar.gz "$url"
   tar -xzf realm.tar.gz
   if [ ! -f "realm" ]; then
-    echo -e "${RED}解压后未找到 realm 可执行文件�?{RESET}"
+    echo -e "${RED}解压后未找到 realm 可执行文件。${RESET}"
     exit 1
   fi
   mv realm "$REALM_BIN"
@@ -219,16 +219,16 @@ EOF
   systemctl enable realm >/dev/null 2>&1 || true
   systemctl restart realm
   echo -e "${GREEN}完成。当前版本：$(get_realm_version_short)${RESET}"
-  echo -e "${GREEN}保活规则已添加，服务已自动启动�?{RESET}"
+  echo -e "${GREEN}保活规则已添加，服务已自动启动。${RESET}"
 }
 
 install_realm() {
   if is_installed; then
-    echo -e "${YELLOW}Realm 已安装（版本�?(get_realm_version_short)）。是否更新到最新版本？[y/N]${RESET}"
+    echo -e "${YELLOW}Realm 已安装（版本：$(get_realm_version_short)）。是否更新到最新版本？[y/N]${RESET}"
     read -r ANS
     case "$ANS" in
       y|Y) install_realm_inner ;;
-      *) echo -e "${YELLOW}已取消更新�?{RESET}" ;;
+      *) echo -e "${YELLOW}已取消更新。${RESET}" ;;
     esac
   else
     install_realm_inner
@@ -236,7 +236,7 @@ install_realm() {
 }
 
 cleanup_realm_firewall() {
-  echo -e "${YELLOW}>>> 正在彻底清理防火墙残�?..${RESET}"
+  echo -e "${YELLOW}>>> 正在彻底清理防火墙残留...${RESET}"
 
   for BIN in iptables iptables-nft iptables-legacy; do
     command -v "$BIN" >/dev/null 2>&1 || continue
@@ -264,16 +264,16 @@ cleanup_realm_firewall() {
     "$BIN" -X REALM_OUT 2>/dev/null || true
   done
 
-  echo -e "${GREEN}>>> 防火墙残留清理完�?{RESET}"
+  echo -e "${GREEN}>>> 防火墙残留清理完成${RESET}"
 }
 
 uninstall_realm() {
-  echo -e "${YELLOW}开始卸�?Realm 面板...${RESET}"
+  echo -e "${YELLOW}开始卸载 Realm 面板...${RESET}"
   bash <(curl -fsSL https://raw.githubusercontent.com/wsuming97/realm-suming/master/unipan.sh) || true
 
   cleanup_realm_firewall
 
-  echo -e "${YELLOW}开始卸�?Realm 主程�?..${RESET}"
+  echo -e "${YELLOW}开始卸载 Realm 主程序...${RESET}"
   systemctl stop realm >/dev/null 2>&1 || true
   systemctl disable realm >/dev/null 2>&1 || true
 
@@ -285,7 +285,7 @@ uninstall_realm() {
   systemctl daemon-reload >/dev/null 2>&1 || true
   systemctl daemon-reexec >/dev/null 2>&1 || true
 
-  echo -e "${GREEN}Realm 及面板已全部卸载完成�?{RESET}"
+  echo -e "${GREEN}Realm 及面板已全部卸载完成。${RESET}"
 }
 
 
@@ -341,10 +341,10 @@ print_rules_pretty() {
   build_rules_index
   local COUNT=${#RULE_STARTS[@]}
   if [ "$COUNT" -eq 0 ]; then
-    echo -e "${YELLOW}暂无转发规则�?{RESET}"
+    echo -e "${YELLOW}暂无转发规则。${RESET}"
     return 1
   fi
-  echo -e "${GREEN}当前转发规则�?{RESET}"
+  echo -e "${GREEN}当前转发规则：${RESET}"
   for ((i=0; i<COUNT; i++)); do
     local st
     [ "${RULE_ENABLED[$i]}" -eq 1 ] && st="启用" || st="暂停"
@@ -362,18 +362,18 @@ has_ipv6() { command -v ip >/dev/null 2>&1 || return 1; ip -6 addr show 2>/dev/n
 
 choose_listen_mode_v4v6() {
   while true; do
-    echo "请选择监听协议�? >&2
-    echo "1. IPv4【默认�? >&2
+    echo "请选择监听协议：" >&2
+    echo "1. IPv4【默认】" >&2
     echo "2. IPv6" >&2
-    read -p "请选择 [1-2]（默�?1�? " MODE
+    read -p "请选择 [1-2]（默认 1）: " MODE
     MODE="${MODE:-1}"
     case "$MODE" in
       1) echo "v4"; return 0 ;;
       2)
         if has_ipv6; then echo "v6"; return 0
-        else echo -e "${RED}本机无可�?IPv6，请改�?IPv4�?{RESET}" >&2
+        else echo -e "${RED}本机无可用 IPv6，请改选 IPv4。${RESET}" >&2
         fi ;;
-      *) echo -e "${RED}无效选项，请重新选择�?{RESET}" >&2 ;;
+      *) echo -e "${RED}无效选项，请重新选择。${RESET}" >&2 ;;
     esac
   done
 }
@@ -408,18 +408,18 @@ port_in_use_system() {
 prompt_listen_port_checked() {
   local mode="$1" exclude="${2:-}" except_port="${3:-}" p=""
   while true; do
-    read -p "请输入监听端�? " p
+    read -p "请输入监听端口: " p
     if ! [[ "$p" =~ ^[0-9]+$ ]] || [ "$p" -lt 1 ] || [ "$p" -gt 65535 ]; then
-      echo -e "${RED}监听端口必须是数字�?{RESET}" >&2
+      echo -e "${RED}监听端口必须是数字。${RESET}" >&2
       continue
     fi
     if [ -n "$except_port" ] && [ "$p" = "$except_port" ]; then echo "$p"; return 0; fi
     if config_port_conflict "$mode" "$p" "$exclude"; then
-      echo -e "${RED}端口 $p 已被其它规则占用（配置冲突），请重新输入�?{RESET}" >&2
+      echo -e "${RED}端口 $p 已被其它规则占用（配置冲突），请重新输入。${RESET}" >&2
       continue
     fi
     if port_in_use_system "$p"; then
-      echo -e "${YELLOW}提示：系统检测到端口 $p 正在被占用。建议换端口�?{RESET}" >&2
+      echo -e "${YELLOW}提示：系统检测到端口 $p 正在被占用。建议换端口。${RESET}" >&2
       read -p "仍然使用该端口吗？[y/N]: " ANS
       case "$ANS" in y|Y) echo "$p"; return 0 ;; *) continue ;; esac
     fi
@@ -431,17 +431,17 @@ prompt_remote_by_mode() {
   local MODE="$1" REMOTE=""
   while true; do
     if [ "$MODE" = "v4" ]; then
-      echo -e "${GREEN}远程目标：IPv4/域名:PORT  例：1.2.3.4:443 �?example.com:443${RESET}" >&2
-      read -r -p "请输入远程目�? " REMOTE
-      [ -z "$REMOTE" ] && { echo -e "${RED}远程目标不能为空�?{RESET}" >&2; continue; }
-      [[ "$REMOTE" == \[*\]:* ]] && { echo -e "${RED}�?IPv4，请重输�?{RESET}" >&2; continue; }
-      [[ "$REMOTE" == *:* && "$REMOTE" != *"."* ]] && { echo -e "${RED} �?IPv4，请重输�?{RESET}" >&2; continue; }
+      echo -e "${GREEN}远程目标：IPv4/域名:PORT  例：1.2.3.4:443 或 example.com:443${RESET}" >&2
+      read -r -p "请输入远程目标: " REMOTE
+      [ -z "$REMOTE" ] && { echo -e "${RED}远程目标不能为空。${RESET}" >&2; continue; }
+      [[ "$REMOTE" == \[*\]:* ]] && { echo -e "${RED}非 IPv4，请重输。${RESET}" >&2; continue; }
+      [[ "$REMOTE" == *:* && "$REMOTE" != *"."* ]] && { echo -e "${RED} 非 IPv4，请重输。${RESET}" >&2; continue; }
       echo "$REMOTE"; return 0
     else
       echo -e "${GREEN}远程目标：[IPv6]:PORT  例：[2001:db8::1]:443${RESET}" >&2
-      read -r -p "请输入远程目�? " REMOTE
-      [ -z "$REMOTE" ] && { echo -e "${RED}远程目标不能为空�?{RESET}" >&2; continue; }
-      echo "$REMOTE" | awk '$0 ~ /^\[[0-9A-Fa-f:]+\]:[0-9]+$/ {ok=1} END{exit ok?0:1}' || { echo -e "${RED}IPv6 格式必须�?[IPv6]:PORT，请重输�?{RESET}" >&2; continue; }
+      read -r -p "请输入远程目标: " REMOTE
+      [ -z "$REMOTE" ] && { echo -e "${RED}远程目标不能为空。${RESET}" >&2; continue; }
+      echo "$REMOTE" | awk '$0 ~ /^\[[0-9A-Fa-f:]+\]:[0-9]+$/ {ok=1} END{exit ok?0:1}' || { echo -e "${RED}IPv6 格式必须是 [IPv6]:PORT，请重输。${RESET}" >&2; continue; }
       echo "$REMOTE"; return 0
     fi
   done
@@ -469,9 +469,9 @@ add_rule() {
   local MODE NAME LISTEN REMOTE
   MODE="$(choose_listen_mode_v4v6)"
   while true; do
-    read -p "请输入规则名�? " NAME
+    read -p "请输入规则名称: " NAME
     if validate_name "$NAME"; then break; fi
-    echo -e "${RED}名称不合法：仅允�?中文/字母/数字/_/-，长�?1-50�?{RESET}"
+    echo -e "${RED}名称不合法：仅允许 中文/字母/数字/_/-，长度 1-50。${RESET}"
   done
   LISTEN="$(prompt_listen_port_checked "$MODE" "" "")"
   REMOTE="$(prompt_remote_by_mode "$MODE")"
@@ -488,15 +488,15 @@ remote = "$REMOTE_ESC"
 type   = "tcp+udp"
 EOF
   restart_realm_silent
-  echo -e "${GREEN}已添加规�?[$NAME] 并已应用�?{RESET}"
+  echo -e "${GREEN}已添加规则 [$NAME] 并已应用。${RESET}"
 }
 
 delete_rule() {
   if ! print_rules_pretty; then return; fi
   local COUNT=${#RULE_STARTS[@]}
-  read -p "请输入要删除的规则编�? " IDX
+  read -p "请输入要删除的规则编号: " IDX
   IDX=$((IDX-1))
-  if [ "$IDX" -lt 0 ] || [ "$IDX" -ge "$COUNT" ]; then echo -e "${RED}编号无效�?{RESET}"; return; fi
+  if [ "$IDX" -lt 0 ] || [ "$IDX" -ge "$COUNT" ]; then echo -e "${RED}编号无效。${RESET}"; return; fi
   local START END tmp
   START=${RULE_STARTS[$IDX]}
   END=${RULE_ENDS[$IDX]}
@@ -504,7 +504,7 @@ delete_rule() {
   awk -v S="$START" -v E="$END" 'NR<S || NR>=E {print}' "$CONFIG_FILE" > "$tmp"
   mv "$tmp" "$CONFIG_FILE"
   restart_realm_silent
-  echo -e "${GREEN}规则已删除并已应用�?{RESET}"
+  echo -e "${GREEN}规则已删除并已应用。${RESET}"
 }
 
 clear_rules() {
@@ -513,7 +513,7 @@ clear_rules() {
   awk 'BEGIN{drop=0} /^[[:space:]]*(# *|)?\[\[endpoints\]\]/{drop=1; next} drop==1 && /^[[:space:]]*$/{drop=0; next} drop==0{print}' "$CONFIG_FILE" > "$tmp"
   mv "$tmp" "$CONFIG_FILE"
   restart_realm_silent
-  echo -e "${GREEN}已清空所有规则并已应用�?{RESET}"
+  echo -e "${GREEN}已清空所有规则并已应用。${RESET}"
 }
 
 list_rules() { print_rules_pretty || true; }
@@ -521,9 +521,9 @@ list_rules() { print_rules_pretty || true; }
 edit_rule() {
   if ! print_rules_pretty; then return; fi
   local COUNT=${#RULE_STARTS[@]}
-  read -p "请输入要修改的规则编�? " IDX
+  read -p "请输入要修改的规则编号: " IDX
   IDX=$((IDX-1))
-  if [ "$IDX" -lt 0 ] || [ "$IDX" -ge "$COUNT" ]; then echo -e "${RED}编号无效�?{RESET}"; return; fi
+  if [ "$IDX" -lt 0 ] || [ "$IDX" -ge "$COUNT" ]; then echo -e "${RED}编号无效。${RESET}"; return; fi
   local START END ENABLED CUR_LISTEN CUR_MODE CUR_PORT
   START=${RULE_STARTS[$IDX]}
   END=${RULE_ENDS[$IDX]}
@@ -531,7 +531,7 @@ edit_rule() {
   CUR_LISTEN="${RULE_LISTENS[$IDX]}"
   CUR_MODE="$(listen_mode_from_value "$CUR_LISTEN")"
   CUR_PORT="$(get_port_from_listen "$CUR_LISTEN")"
-  echo -e "${GREEN}选中规则�?{RESET}$((IDX+1)). [${RULE_NAMES[$IDX]}] ${RULE_LISTENS[$IDX]} -> ${RULE_REMOTES[$IDX]} (${RULE_TYPES[$IDX]})"
+  echo -e "${GREEN}选中规则：${RESET}$((IDX+1)). [${RULE_NAMES[$IDX]}] ${RULE_LISTENS[$IDX]} -> ${RULE_REMOTES[$IDX]} (${RULE_TYPES[$IDX]})"
   echo "要修改哪个字段？"
   echo "1. 名称"
   echo "2. 监听端口"
@@ -544,7 +544,7 @@ edit_rule() {
       while true; do
         read -p "请输入新名称: " NEW
         if validate_name "$NEW"; then break; fi
-        echo -e "${RED}名称不合法：仅允�?中文/字母/数字/_/-，长�?1-50�?{RESET}"
+        echo -e "${RED}名称不合法：仅允许 中文/字母/数字/_/-，长度 1-50。${RESET}"
       done
       apply_block_key_update "$START" "$END" "$ENABLED" "name" "$(escape_toml "$NEW")"
       ;;
@@ -560,18 +560,18 @@ edit_rule() {
       apply_block_key_update "$START" "$END" "$ENABLED" "remote" "$(escape_toml "$NEWR")"
       ;;
     0) return ;;
-    *) echo -e "${RED}无效选项�?{RESET}"; return ;;
+    *) echo -e "${RED}无效选项。${RESET}"; return ;;
   esac
   restart_realm_silent
-  echo -e "${GREEN}规则已修改并已应用�?{RESET}"
+  echo -e "${GREEN}规则已修改并已应用。${RESET}"
 }
 
 toggle_rule() {
   if ! print_rules_pretty; then return; fi
   local COUNT=${#RULE_STARTS[@]}
-  read -p "请输入要启动/暂停的规则编�? " IDX
+  read -p "请输入要启动/暂停的规则编号: " IDX
   IDX=$((IDX-1))
-  if [ "$IDX" -lt 0 ] || [ "$IDX" -ge "$COUNT" ]; then echo -e "${RED}编号无效�?{RESET}"; return; fi
+  if [ "$IDX" -lt 0 ] || [ "$IDX" -ge "$COUNT" ]; then echo -e "${RED}编号无效。${RESET}"; return; fi
   local START END tmp
   START=${RULE_STARTS[$IDX]}
   END=${RULE_ENDS[$IDX]}
@@ -594,37 +594,37 @@ export_rules() {
   mkdir -p "$BACKUP_DIR"
   read -p "导出文件路径 [默认 ${DEFAULT_EXPORT_FILE}]: " OUT
   OUT="${OUT:-$DEFAULT_EXPORT_FILE}"
-  echo -e "${GREEN}正在打包配置与面板数�?..${RESET}"
+  echo -e "${GREEN}正在打包配置与面板数据...${RESET}"
   local FILES_TO_BACKUP="config.toml"
   if [ -f "$PANEL_DATA_FILE" ]; then
       FILES_TO_BACKUP="config.toml panel_data.json"
   fi
   tar -czf "$OUT" -C "$(dirname "$CONFIG_FILE")" $FILES_TO_BACKUP
   if [ -s "$OUT" ]; then
-    echo -e "${GREEN}导出完成�?{RESET}"
-    echo -e "${GREEN}导出文件路径�?OUT${RESET}"
+    echo -e "${GREEN}导出完成！${RESET}"
+    echo -e "${GREEN}导出文件路径：$OUT${RESET}"
   else
-    echo -e "${RED}导出失败�?{RESET}"
+    echo -e "${RED}导出失败。${RESET}"
   fi
 }
 
 import_rules() {
   ensure_config_file
-  read -p "请输入要导入的文件路径（回车默认�?{DEFAULT_IMPORT_FILE}�? " IN
+  read -p "请输入要导入的文件路径（回车默认：${DEFAULT_IMPORT_FILE}）: " IN
   IN="${IN:-$DEFAULT_IMPORT_FILE}"
   if [ -z "$IN" ] || [ ! -f "$IN" ]; then echo -e "${RED}导入文件不存在：$IN${RESET}"; return; fi
-  echo -e "${YELLOW}警告：这将覆盖当前的 规则配置 �?面板数据�?{RESET}"
+  echo -e "${YELLOW}警告：这将覆盖当前的 规则配置 和 面板数据！${RESET}"
   read -p "确认覆盖导入吗？[y/N]: " ANS
   case "$ANS" in y|Y) ;; *) return ;; esac
   if [[ "$IN" == *.tar.gz ]]; then
       echo -e "${GREEN}正在恢复全量备份...${RESET}"
       tar -xzf "$IN" -C "$(dirname "$CONFIG_FILE")"
   else
-      echo -e "${YELLOW}检测到旧版配置，仅恢复规则�?{RESET}"
+      echo -e "${YELLOW}检测到旧版配置，仅恢复规则。${RESET}"
       cat "$IN" > "$CONFIG_FILE"
   fi
   restart_realm_silent
-  echo -e "${GREEN}导入完成并已应用�?{RESET}"
+  echo -e "${GREEN}导入完成并已应用。${RESET}"
 }
 
 has_cron() {
@@ -635,7 +635,7 @@ has_cron() {
 }
 
 install_cron() {
-  echo -e "${YELLOW}系统未检测到 cron/crond�?{RESET}"
+  echo -e "${YELLOW}系统未检测到 cron/crond。${RESET}"
   read -p "是否尝试自动安装 cron？[y/N]: " ANS
   case "$ANS" in y|Y) ;; *) return 1 ;; esac
   if [ -f /etc/alpine-release ]; then
@@ -650,14 +650,14 @@ install_cron() {
     if command -v dnf >/dev/null 2>&1; then dnf install -y cronie || return 1; else need_cmd yum; yum install -y cronie || return 1; fi
     systemctl enable crond >/dev/null 2>&1 || true; systemctl start crond >/dev/null 2>&1 || true; return 0
   fi
-  echo -e "${RED}无法识别发行版，请手动安�?cron/cronie�?{RESET}"
+  echo -e "${RED}无法识别发行版，请手动安装 cron/cronie。${RESET}"
   return 1
 }
 
 ensure_cron_ready() {
   if has_cron; then return 0; fi
-  install_cron || { echo -e "${RED}cron 不可用，无法创建定时任务�?{RESET}"; return 1; }
-  has_cron || { echo -e "${RED}cron 安装/启动失败，无法创建定时任务�?{RESET}"; return 1; }
+  install_cron || { echo -e "${RED}cron 不可用，无法创建定时任务。${RESET}"; return 1; }
+  has_cron || { echo -e "${RED}cron 安装/启动失败，无法创建定时任务。${RESET}"; return 1; }
   return 0
 }
 
@@ -684,8 +684,8 @@ EOF
 schedule_status() {
   if [ -f "$CRON_FILE" ] && [ -x "$EXPORT_HELPER" ]; then
     echo -e "${GREEN}定时备份：已启用${RESET}"
-    echo -e "${GREEN}Cron 文件�?CRON_FILE${RESET}"
-    echo "Cron 内容�?
+    echo -e "${GREEN}Cron 文件：$CRON_FILE${RESET}"
+    echo "Cron 内容："
     cat "$CRON_FILE"
   else
     echo -e "${YELLOW}定时备份：未启用${RESET}"
@@ -701,13 +701,13 @@ normalize_hhmm() {
 setup_export_cron() {
   ensure_cron_ready || return
   write_export_helper
-  echo "定时导出类型�?
+  echo "定时导出类型："
   echo "1. 每天"
   echo "2. 每周"
   read -p "请选择 [1-2]: " T
   local D="*"
   if [ "$T" = "2" ]; then
-    echo "请选择周几�?=周一 ... 6=周六 7=周日"
+    echo "请选择周几：1=周一 ... 6=周六 7=周日"
     read -p "周几 [1-7]: " WD
     case "$WD" in
       1) D="1" ;;
@@ -717,22 +717,22 @@ setup_export_cron() {
       5) D="5" ;;
       6) D="6" ;;
       7) D="0" ;;
-      *) echo -e "${RED}周几输入无效�?{RESET}"; return ;;
+      *) echo -e "${RED}周几输入无效。${RESET}"; return ;;
     esac
   elif [ "$T" != "1" ]; then
-    echo -e "${RED}无效选项�?{RESET}"
+    echo -e "${RED}无效选项。${RESET}"
     return
   fi
-  read -p "请输入小时（0-23，可输入 05�? " HH
-  read -p "请输入分钟（0-59，可输入 00�? " MM
+  read -p "请输入小时（0-23，可输入 05）: " HH
+  read -p "请输入分钟（0-59，可输入 00）: " MM
   HH="$(normalize_hhmm "$HH")"
   MM="$(normalize_hhmm "$MM")"
   if ! [[ "$HH" =~ ^[0-9]+$ ]] || [ "$HH" -lt 0 ] || [ "$HH" -gt 23 ]; then
-    echo -e "${RED}小时无效�?{RESET}"
+    echo -e "${RED}小时无效。${RESET}"
     return
   fi
   if ! [[ "$MM" =~ ^[0-9]+$ ]] || [ "$MM" -lt 0 ] || [ "$MM" -gt 59 ]; then
-    echo -e "${RED}分钟无效�?{RESET}"
+    echo -e "${RED}分钟无效。${RESET}"
     return
   fi
   cat > "$CRON_FILE" <<EOF
@@ -741,8 +741,8 @@ SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 $MM $HH * * $D root $EXPORT_HELPER >/dev/null 2>&1
 EOF
-  echo -e "${GREEN}已添加定时备份任务�?{RESET}"
-  echo -e "${GREEN}Cron 文件�?CRON_FILE${RESET}"
+  echo -e "${GREEN}已添加定时备份任务。${RESET}"
+  echo -e "${GREEN}Cron 文件：$CRON_FILE${RESET}"
 }
 
 remove_export_cron() {
@@ -750,16 +750,16 @@ remove_export_cron() {
   [ -f "$CRON_FILE" ] && rm -f "$CRON_FILE" && removed=1
   [ -f "$EXPORT_HELPER" ] && rm -f "$EXPORT_HELPER" && removed=1
   if [ "$removed" -eq 1 ]; then
-    echo -e "${GREEN}已删除定时备份任务（及导出脚本）�?{RESET}"
+    echo -e "${GREEN}已删除定时备份任务（及导出脚本）。${RESET}"
   else
-    echo -e "${YELLOW}未发现定时备份任务，无需删除�?{RESET}"
+    echo -e "${YELLOW}未发现定时备份任务，无需删除。${RESET}"
   fi
 }
 
 manage_schedule_backup() {
   echo "--------------------"
-  echo "定时备份任务管理�?
-  echo "1. 查看当前状�?
+  echo "定时备份任务管理："
+  echo "1. 查看当前状态"
   echo "2. 添加定时备份任务"
   echo "3. 删除定时备份任务"
   echo "0. 返回"
@@ -769,15 +769,15 @@ manage_schedule_backup() {
     2) setup_export_cron ;;
     3) remove_export_cron ;;
     0) return ;;
-    *) echo -e "${RED}无效选项�?{RESET}" ;;
+    *) echo -e "${RED}无效选项。${RESET}" ;;
   esac
 }
 
 install_ftp(){
     clear
     echo -e "${GREEN}📂 FTP/SFTP 备份工具...${RESET}"
-    echo -e "${YELLOW}默认 Realm 规则备份文件�?{DEFAULT_EXPORT_FILE}${RESET}"
-    bash <(curl -L https://raw.githubusercontent.com/hiapb/ftp/master/back.sh)
+    echo -e "${YELLOW}默认 Realm 规则备份文件：${DEFAULT_EXPORT_FILE}${RESET}"
+    bash <(curl -L https://raw.githubusercontent.com/hiapb/ftp/main/back.sh)
     sleep 2
     exit 0
 }
@@ -791,12 +791,12 @@ update_panel_port() {
     echo -e "${GREEN}修改 Web 面板访问端口${RESET}"
     read -p "请输入新的端口号 (1-65535): " new_port
     if ! [[ "$new_port" =~ ^[0-9]+$ ]] || [ "$new_port" -lt 1 ] || [ "$new_port" -gt 65535 ]; then
-        echo -e "${RED}输入无效，端口必须是 1 �?65535 之间的数字�?{RESET}"
+        echo -e "${RED}输入无效，端口必须是 1 到 65535 之间的数字。${RESET}"
         return
     fi
     if command -v ss >/dev/null 2>&1; then
         if ss -lntu | grep -q ":${new_port} "; then
-            echo -e "${RED}错误：端�?$new_port 似乎已被系统其他程序占用�?{RESET}"
+            echo -e "${RED}错误：端口 $new_port 似乎已被系统其他程序占用。${RESET}"
             return
         fi
     fi
@@ -806,16 +806,16 @@ update_panel_port() {
     if systemctl restart realm-panel; then
         local IP
         IP=$(curl -s4 ifconfig.me || hostname -I | awk '{print $1}')
-        echo -e "${GREEN}�?端口修改成功�?{RESET}"
+        echo -e "${GREEN}✅ 端口修改成功！${RESET}"
         echo -e "新的访问地址: ${YELLOW}http://${IP}:${new_port}${RESET}"
     else
-        echo -e "${RED}修改失败，面板服务无法重启，请检查日志�?{RESET}"
+        echo -e "${RED}修改失败，面板服务无法重启，请检查日志。${RESET}"
     fi
 }
 
 manage_panel() {
     echo "--------------------"
-    echo "Realm 面板管理�?
+    echo "Realm 面板管理："
     echo "1. 安装面板"
     echo "2. 卸载面板"
     echo "3. 修改面板端口" 
@@ -824,9 +824,9 @@ manage_panel() {
     case "$PAN_OPT" in
         1)
             echo "--------------------"
-            echo "选择安装方式�?
-            echo "1. 快速安装部�?
-            echo "2. 自编译部�?
+            echo "选择安装方式："
+            echo "1. 快速安装部署"
+            echo "2. 自编译部署"
             echo "0. 返回"
             read -p "请选择 [0-2]: " INST_OPT
             case "$INST_OPT" in
@@ -850,12 +850,12 @@ run_traffic_dog() {
     if [ -f "$TRAFFIC_DOG_SCRIPT" ]; then
         bash "$TRAFFIC_DOG_SCRIPT"
     else
-        echo -e "${YELLOW}正在下载端口流量狗脚�?..${RESET}"
+        echo -e "${YELLOW}正在下载端口流量狗脚本...${RESET}"
         if curl -fsSL "$TRAFFIC_DOG_URL" -o "$TRAFFIC_DOG_SCRIPT"; then
             chmod +x "$TRAFFIC_DOG_SCRIPT"
             bash "$TRAFFIC_DOG_SCRIPT"
         else
-            echo -e "${RED}下载失败，请检查网络连�?{RESET}"
+            echo -e "${RED}下载失败，请检查网络连接${RESET}"
         fi
     fi
 }
@@ -879,14 +879,14 @@ main_menu() {
     echo "--------------------"
     echo "10. 查看日志"
     echo "11. 查看配置"
-    echo "12. 一键导出所有规�?
-    echo "13. 一键导入所有规�?
+    echo "12. 一键导出所有规则"
+    echo "13. 一键导入所有规则"
     echo "14. 添加/删除定时备份任务"
     echo "15. 自动备份到FTP/SFTP"
     echo "16. Realm 面板管理"
-    echo "17. 端口流量狗管�?
-    echo "0.  退�?
-    read -p "请选择一个操�?[0-17]: " OPT
+    echo "17. 端口流量狗管理"
+    echo "0.  退出"
+    read -p "请选择一个操作 [0-17]: " OPT
     case "$OPT" in
       1) install_realm ;;
       2) uninstall_realm ;;
@@ -906,7 +906,7 @@ main_menu() {
       15) require_installed && install_ftp ;;
       16) manage_panel ;;
       17) require_installed && run_traffic_dog ;;
-      *) echo -e "${RED}无效选项�?{RESET}" ;;
+      *) echo -e "${RED}无效选项。${RESET}" ;;
     esac
   done
 }
