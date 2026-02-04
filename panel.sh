@@ -1282,15 +1282,17 @@ async fn update_notifications(cookies: Cookies, State(state): State<Arc<AppState
 }
 
 async fn test_notifications(cookies: Cookies, State(state): State<Arc<AppState>>) -> Response {
-    let data = state.data.lock().unwrap();
-    if !check_auth(&cookies, &data) { return StatusCode::UNAUTHORIZED.into_response(); }
-    let cfg = data.notifications.clone();
+    let (cfg, auth_ok) = {
+        let data = state.data.lock().unwrap();
+        let auth = check_auth(&cookies, &data);
+        (data.notifications.clone(), auth)
+    };
+    if !auth_ok { return StatusCode::UNAUTHORIZED.into_response(); }
     if !cfg.telegram_enabled && !cfg.wecom_enabled {
         return Json(serde_json::json!({"status":"error", "message": "未启用任何通知"})).into_response();
     }
     let server_name = if cfg.server_name.trim().is_empty() { "服务器".to_string() } else { cfg.server_name.clone() };
     let msg = format!("{} 通知测试：端口流量狗面板配置已生效。", server_name);
-    drop(data);
 
     let mut ok = true;
     if let Err(_) = send_telegram_notification(&cfg, &msg).await { ok = false; }
