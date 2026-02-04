@@ -370,7 +370,7 @@ cleanup_realm_firewall() {
 
 uninstall_realm() {
     echo -e "${YELLOW}开始卸载 Realm 面板...${RESET}"
-    bash <(curl -fsSL https://raw.githubusercontent.com/wsuming97/realm-suming/master/unipan.sh) || true
+    bash <(curl -fsSL https://raw.githubusercontent.com/wsuming97/realm-suming/main/unipan.sh) || true
 
     cleanup_realm_firewall
 
@@ -943,10 +943,11 @@ manage_panel() {
     echo "--------------------"
     echo "Realm 面板管理："
     echo "1. 安装面板"
-    echo "2. 卸载面板"
-    echo "3. 修改面板端口" 
+    echo "2. 更新面板"
+    echo "3. 卸载面板"
+    echo "4. 修改面板端口"
     echo "0. 返回"
-    read -p "请选择 [0-3]: " PAN_OPT
+    read -p "请选择 [0-4]: " PAN_OPT
     case "$PAN_OPT" in
         1)
             echo "--------------------"
@@ -957,26 +958,34 @@ manage_panel() {
             read -p "请选择 [0-2]: " INST_OPT
             case "$INST_OPT" in
                 1)
-                    if ! bash <(curl -fsSL https://raw.githubusercontent.com/wsuming97/realm-suming/master/quickpanel.sh); then
+                    if ! bash <(curl -fsSL https://raw.githubusercontent.com/wsuming97/realm-suming/main/quickpanel.sh); then
                         echo -e "${YELLOW}快速安装失败，尝试自编译部署...${RESET}"
-                        bash <(curl -fsSL https://raw.githubusercontent.com/wsuming97/realm-suming/master/panel.sh)
+                        bash <(curl -fsSL https://raw.githubusercontent.com/wsuming97/realm-suming/main/panel.sh)
                     fi
                     ;;
-                2) bash <(curl -fsSL https://raw.githubusercontent.com/wsuming97/realm-suming/master/panel.sh) ;;
+                2) bash <(curl -fsSL https://raw.githubusercontent.com/wsuming97/realm-suming/main/panel.sh) ;;
                 *) return ;;
             esac
             ;;
         2)
-            bash <(curl -fsSL https://raw.githubusercontent.com/wsuming97/realm-suming/master/unipan.sh)
+            echo -e "${YELLOW}正在更新面板...${RESET}"
+            # 停止面板服务
+            systemctl stop realm-panel 2>/dev/null || true
+            # 重新编译安装
+            bash <(curl -fsSL https://raw.githubusercontent.com/wsuming97/realm-suming/main/panel.sh)
+            echo -e "${GREEN}面板更新完成！${RESET}"
             ;;
-        3) update_panel_port ;;
+        3)
+            bash <(curl -fsSL https://raw.githubusercontent.com/wsuming97/realm-suming/main/unipan.sh)
+            ;;
+        4) update_panel_port ;;
         *) return ;;
     esac
 }
 
 run_traffic_dog() {
     local TRAFFIC_DOG_SCRIPT="/usr/local/bin/port-traffic-dog.sh"
-    local TRAFFIC_DOG_URL="https://raw.githubusercontent.com/wsuming97/realm-suming/master/port-traffic-dog.sh"
+    local TRAFFIC_DOG_URL="https://raw.githubusercontent.com/wsuming97/realm-suming/main/port-traffic-dog.sh"
     
     if [ -f "$TRAFFIC_DOG_SCRIPT" ]; then
         bash "$TRAFFIC_DOG_SCRIPT"

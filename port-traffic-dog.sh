@@ -39,7 +39,7 @@ readonly NC='\033[0m'
 # 网络超时设置
 readonly SHORT_CONNECT_TIMEOUT=5
 readonly SHORT_MAX_TIMEOUT=7
-readonly SCRIPT_URL="https://raw.githubusercontent.com/wsuming97/realm-suming/master/port-traffic-dog.sh"
+readonly SCRIPT_URL="https://raw.githubusercontent.com/wsuming97/realm-suming/main/port-traffic-dog.sh"
 readonly SHORTCUT_COMMAND="dog"
 
 install_missing_tools() {
@@ -2449,7 +2449,7 @@ download_with_sources() {
 download_notification_modules() {
     local notifications_dir="$CONFIG_DIR/notifications"
     local temp_dir=$(mktemp -d)
-    local repo_url="https://github.com/wsuming97/realm-suming/archive/refs/heads/master.zip"
+    local repo_url="https://github.com/wsuming97/realm-suming/archive/refs/heads/main.zip"
 
     # 下载解压复制清理：成功后再替换，避免失败导致通知模块被清空
     if download_with_sources "$repo_url" "$temp_dir/repo.zip" &&
