@@ -257,13 +257,13 @@ const CHAIN_IN: &str = "REALM_IN";
 const CHAIN_OUT: &str = "REALM_OUT";
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
-#[derive(Serialize, Deserialize, Clone, Debug)]
 struct RemoteTarget {
     address: String,
     #[serde(default)]
     label: String,
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug)]
 struct Rule {
     id: String,
     name: String,
@@ -872,7 +872,8 @@ fn save_config_toml(data: &AppData) {
             name: r.name.clone(),
             listen: r.listen.clone(),
             remote: r.remote.clone(),
-            r#type: "tcp+udp".to_string(), 
+            remote_list: r.remote_list.clone(),
+            r#type: "tcp+udp".to_string(),
         })
         .collect();
     
@@ -880,6 +881,7 @@ fn save_config_toml(data: &AppData) {
         name: "system-keepalive".to_string(),
         listen: "127.0.0.1:65534".to_string(),
         remote: "127.0.0.1:65534".to_string(),
+        remote_list: Vec::new(),
         r#type: "tcp+udp".to_string(),
     });
 
@@ -1000,6 +1002,7 @@ async fn add_rule(cookies: Cookies, headers: HeaderMap, State(state): State<Arc<
         name: req.name,
         listen: req.listen,
         remote: req.remote,
+        remote_list: Vec::new(),
         enabled: true,
         expire_date: req.expire_date,
         traffic_limit: req.traffic_limit,
@@ -1035,6 +1038,7 @@ async fn batch_add_rules(cookies: Cookies, headers: HeaderMap, State(state): Sta
             name: req.name,
             listen: req.listen,
             remote: req.remote,
+            remote_list: Vec::new(),
             enabled: true,
             expire_date: req.expire_date,
             traffic_limit: req.traffic_limit,
@@ -1582,8 +1586,7 @@ async fn switch_rule_target(Path(id): Path<String>, cookies: Cookies, State(stat
         if req.index < rule.remote_list.len() {
             rule.remote = rule.remote_list[req.index].address.clone();
             save_json(&data);
-            drop(data);
-            let _ = reload_realm(&state);
+            save_config_toml(&data);
             Json(serde_json::json!({"status":"ok"})).into_response()
         } else {
             Json(serde_json::json!({"status":"error","message":"索引超出范围"})).into_response()
