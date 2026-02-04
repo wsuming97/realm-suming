@@ -281,13 +281,14 @@ get_network_interfaces() {
         if [[ "$interface" != "lo" ]] && [[ "$interface" != "" ]]; then
             interfaces+=("$interface")
         fi
-    done < <(ip link show | grep "state UP" | awk -F': ' '{print $2}' | cut -d'@' -f1)
+    done < <( { ip -o link show up 2>/dev/null || true; } | awk -F': ' '{print $2}' | cut -d'@' -f1)
 
     printf '%s\n' "${interfaces[@]}"
 }
 
 get_default_interface() {
-    local default_interface=$(ip route | grep default | awk '{print $5}' | head -n1)
+    local default_interface
+    default_interface=$( { ip route show default 2>/dev/null || true; } | awk 'NR==1 {print $5}')
 
     if [ -n "$default_interface" ]; then
         echo "$default_interface"
@@ -352,15 +353,17 @@ show_port_list() {
 parse_multi_choice_input() {
     local input="$1"
     local max_choice="$2"
-    local -n result_array=$3
+    local result_name=$3
+    local escaped
 
     IFS=',' read -ra CHOICES <<< "$input"
-    result_array=()
+    eval "$result_name=()"
 
     for choice in "${CHOICES[@]}"; do
         choice=$(echo "$choice" | tr -d ' ')
         if [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -ge 1 ] && [ "$choice" -le "$max_choice" ]; then
-            result_array+=("$choice")
+            printf -v escaped '%q' "$choice"
+            eval "$result_name+=($escaped)"
         else
             echo -e "${RED}无效选择: $choice${NC}"
         fi
@@ -369,21 +372,27 @@ parse_multi_choice_input() {
 
 parse_comma_separated_input() {
     local input="$1"
-    local -n result_array=$2
+    local result_name=$2
+    local escaped
+    local result_array=()
 
     IFS=',' read -ra result_array <<< "$input"
+    eval "$result_name=()"
 
     for i in "${!result_array[@]}"; do
         result_array[$i]=$(echo "${result_array[$i]}" | tr -d ' ')
+        printf -v escaped '%q' "${result_array[$i]}"
+        eval "$result_name+=($escaped)"
     done
 }
 
 parse_port_range_input() {
     local input="$1"
-    local -n result_array=$2
+    local result_name=$2
+    local escaped
 
     IFS=',' read -ra PARTS <<< "$input"
-    result_array=()
+    eval "$result_name=()"
 
     for part in "${PARTS[@]}"; do
         part=$(echo "$part" | tr -d ' ')
@@ -403,11 +412,13 @@ parse_port_range_input() {
                 return 1
             fi
 
-            result_array+=("$part")
+            printf -v escaped '%q' "$part"
+            eval "$result_name+=($escaped)"
 
         elif [[ "$part" =~ ^[0-9]+$ ]]; then
             if [ "$part" -ge 1 ] && [ "$part" -le 65535 ]; then
-                result_array+=("$part")
+                printf -v escaped '%q' "$part"
+                eval "$result_name+=($escaped)"
             else
                 echo -e "${RED}错误：端口号 $part 无效，必须是1-65535之间的数字${NC}"
                 return 1
@@ -422,14 +433,19 @@ parse_port_range_input() {
 }
 
 expand_single_value_to_array() {
-    local -n source_array=$1
+    local source_name=$1
     local target_size=$2
+    local source_len
+    local single_value
+    local escaped
 
-    if [ ${#source_array[@]} -eq 1 ]; then
-        local single_value="${source_array[0]}"
-        source_array=()
+    eval "source_len=\${#${source_name}[@]}"
+    if [ "$source_len" -eq 1 ]; then
+        eval "single_value=\${${source_name}[0]}"
+        printf -v escaped '%q' "$single_value"
+        eval "$source_name=()"
         for ((i=0; i<target_size; i++)); do
-            source_array+=("$single_value")
+            eval "$source_name+=($escaped)"
         done
     fi
 }
@@ -454,18 +470,54 @@ get_nftables_counter_data() {
     if is_port_range "$port"; then
         local port_safe=$(echo "$port" | tr '-' '_')
         if [ "$billing_mode" = "double" ]; then
-            input_bytes=$(nft list counter $family $table_name "port_${port_safe}_in" 2>/dev/null | \
-                grep -o 'bytes [0-9]*' | awk '{print $2}')
+            input_bytes=$(
+                { nft list counter $family $table_name "port_${port_safe}_in" 2>/dev/null || true; } |
+                    awk '
+                        {
+                            for (i=1; i<=NF; i++) {
+                                if ($i=="bytes" && (i+1)<=NF) { print $(i+1); found=1; exit }
+                            }
+                        }
+                        END { if (!found) print 0 }
+                    '
+            )
         fi
-        output_bytes=$(nft list counter $family $table_name "port_${port_safe}_out" 2>/dev/null | \
-            grep -o 'bytes [0-9]*' | awk '{print $2}')
+        output_bytes=$(
+            { nft list counter $family $table_name "port_${port_safe}_out" 2>/dev/null || true; } |
+                awk '
+                    {
+                        for (i=1; i<=NF; i++) {
+                            if ($i=="bytes" && (i+1)<=NF) { print $(i+1); found=1; exit }
+                        }
+                    }
+                    END { if (!found) print 0 }
+                '
+        )
     else
         if [ "$billing_mode" = "double" ]; then
-            input_bytes=$(nft list counter $family $table_name "port_${port}_in" 2>/dev/null | \
-                grep -o 'bytes [0-9]*' | awk '{print $2}')
+            input_bytes=$(
+                { nft list counter $family $table_name "port_${port}_in" 2>/dev/null || true; } |
+                    awk '
+                        {
+                            for (i=1; i<=NF; i++) {
+                                if ($i=="bytes" && (i+1)<=NF) { print $(i+1); found=1; exit }
+                            }
+                        }
+                        END { if (!found) print 0 }
+                    '
+            )
         fi
-        output_bytes=$(nft list counter $family $table_name "port_${port}_out" 2>/dev/null | \
-            grep -o 'bytes [0-9]*' | awk '{print $2}')
+        output_bytes=$(
+            { nft list counter $family $table_name "port_${port}_out" 2>/dev/null || true; } |
+                awk '
+                    {
+                        for (i=1; i<=NF; i++) {
+                            if ($i=="bytes" && (i+1)<=NF) { print $(i+1); found=1; exit }
+                        }
+                    }
+                    END { if (!found) print 0 }
+                '
+        )
     fi
 
     input_bytes=${input_bytes:-0}
@@ -674,7 +726,10 @@ get_port_status_label() {
         if [ "$monthly_limit" != "unlimited" ]; then
             local current_usage=$(get_port_monthly_usage "$port")
             local limit_bytes=$(parse_size_to_bytes "$monthly_limit")
-            local usage_percent=$((current_usage * 100 / limit_bytes))
+            local usage_percent=0
+            if [ "$limit_bytes" -gt 0 ]; then
+                usage_percent=$((current_usage * 100 / limit_bytes))
+            fi
 
             local quota_display="$monthly_limit"
             if [ "$billing_mode" = "double" ]; then
@@ -760,10 +815,10 @@ validate_quota() {
 
 parse_size_to_bytes() {
     local size_str=$1
-    local number=$(echo "$size_str" | grep -o '^[0-9]\+')
-    local unit=$(echo "$size_str" | grep -o '[A-Za-z]\+$' | tr '[:lower:]' '[:upper:]')
+    local number=$(echo "$size_str" | grep -o '^[0-9]\+' || true)
+    local unit=$( { echo "$size_str" | grep -o '[A-Za-z]\+$' | tr '[:lower:]' '[:upper:]'; } || true)
 
-    [ -z "$number" ] && echo "0" && return 1
+    [ -z "$number" ] && echo "0" && return 0
 
     case $unit in
         "MB"|"M") echo $((number * 1048576)) ;;
@@ -965,7 +1020,7 @@ add_port_monitoring() {
     while read line; do
         if [[ "$line" =~ LISTEN|UNCONN ]]; then
             local_addr=$(echo "$line" | awk '{print $5}')
-            port=$(echo "$local_addr" | grep -o ':[0-9]*$' | cut -d':' -f2)
+            port=$(echo "$local_addr" | sed -n 's/.*:\([0-9]\+\)$/\1/p')
             program=$(echo "$line" | awk '{print $7}' | cut -d'"' -f2 2>/dev/null || echo "")
 
             if [ -n "$port" ] && [ -n "$program" ] && [ "$program" != "-" ]; then
@@ -996,7 +1051,11 @@ add_port_monitoring() {
     read -p "请输入要监控的端口号（多端口使用逗号,分隔,端口段使用-分隔）: " port_input
 
     local PORTS=()
-    parse_port_range_input "$port_input" PORTS
+    if ! parse_port_range_input "$port_input" PORTS; then
+        sleep 2
+        manage_port_monitoring
+        return
+    fi
     local valid_ports=()
 
     for port in "${PORTS[@]}"; do
@@ -1384,10 +1443,15 @@ remove_nftables_rules() {
     # 使用handle删除法：逐个删除匹配的规则
     local deleted_count=0
     while true; do
-        local handle=$(nft -a list table $family $table_name 2>/dev/null | \
-            grep -E "(tcp|udp).*(dport|sport).*$search_pattern" | \
-            head -n1 | \
-            sed -n 's/.*# handle \([0-9]\+\)$/\1/p')
+        local handle=$(
+            { nft -a list table $family $table_name 2>/dev/null || true; } | \
+                awk -v pat="$search_pattern" '
+                    $0 ~ /(tcp|udp)/ && $0 ~ /(dport|sport)/ && $0 ~ pat {
+                        for (i=1; i<=NF; i++) {
+                            if ($i=="handle" && (i+1)<=NF) { print $(i+1); exit }
+                        }
+                    }'
+        )
 
         if [ -z "$handle" ]; then
             break
@@ -1831,10 +1895,15 @@ remove_nftables_quota() {
     local deleted_count=0
     while true; do
         # 每次只获取第一个匹配的配额规则handle
-        local handle=$(nft -a list table $family $table_name 2>/dev/null | \
-            grep "quota name \"$quota_name\"" | \
-            head -n1 | \
-            sed -n 's/.*# handle \([0-9]\+\)$/\1/p')
+        local handle=$(
+            { nft -a list table $family $table_name 2>/dev/null || true; } | \
+                awk -v name="$quota_name" '
+                    $0 ~ ("quota name \"" name "\"") {
+                        for (i=1; i<=NF; i++) {
+                            if ($i=="handle" && (i+1)<=NF) { print $(i+1); exit }
+                        }
+                    }'
+        )
 
         if [ -z "$handle" ]; then
             break
