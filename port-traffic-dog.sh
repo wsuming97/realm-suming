@@ -3,15 +3,24 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+GITHUB_RAW_BASE="https://raw.githubusercontent.com/wsuming97/realm-suming/main"
+
+# 加载公共库
 if [ -f "$SCRIPT_DIR/lib/common.sh" ]; then
-    # shellcheck source=/dev/null
     source "$SCRIPT_DIR/lib/common.sh"
 elif [ -f "/usr/local/lib/realm/common.sh" ]; then
-    # shellcheck source=/dev/null
     source /usr/local/lib/realm/common.sh
 else
-    echo "缺少公共库 lib/common.sh" >&2
-    exit 1
+    TEMP_LIB_DIR="/tmp/realm-install-lib"
+    mkdir -p "$TEMP_LIB_DIR"
+    if curl -fsSL "$GITHUB_RAW_BASE/lib/common.sh" -o "$TEMP_LIB_DIR/common.sh" 2>/dev/null; then
+        source "$TEMP_LIB_DIR/common.sh"
+        mkdir -p /usr/local/lib/realm
+        cp "$TEMP_LIB_DIR/common.sh" /usr/local/lib/realm/common.sh
+    else
+        echo "无法加载公共库" >&2
+        exit 1
+    fi
 fi
 
 readonly SCRIPT_VERSION="1.2.5"

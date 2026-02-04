@@ -2,6 +2,9 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+GITHUB_RAW_BASE="https://raw.githubusercontent.com/wsuming97/realm-suming/main"
+
+# 加载公共库：优先本地，其次系统安装，最后从远程下载
 if [ -f "$SCRIPT_DIR/lib/common.sh" ]; then
     # shellcheck source=/dev/null
     source "$SCRIPT_DIR/lib/common.sh"
@@ -9,8 +12,20 @@ elif [ -f "/usr/local/lib/realm/common.sh" ]; then
     # shellcheck source=/dev/null
     source /usr/local/lib/realm/common.sh
 else
-    echo "缺少公共库 lib/common.sh" >&2
-    exit 1
+    # 远程运行模式：下载 common.sh 到临时目录
+    TEMP_LIB_DIR="/tmp/realm-install-lib"
+    mkdir -p "$TEMP_LIB_DIR"
+    echo "正在下载公共库..."
+    if curl -fsSL "$GITHUB_RAW_BASE/lib/common.sh" -o "$TEMP_LIB_DIR/common.sh"; then
+        # shellcheck source=/dev/null
+        source "$TEMP_LIB_DIR/common.sh"
+        # 安装到系统目录以便后续使用
+        mkdir -p /usr/local/lib/realm
+        cp "$TEMP_LIB_DIR/common.sh" /usr/local/lib/realm/common.sh
+    else
+        echo "无法下载公共库，请检查网络连接。" >&2
+        exit 1
+    fi
 fi
 
 CONFIG_FILE="/etc/realm/config.toml"
